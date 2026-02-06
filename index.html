@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic-Tac-Toe M3</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#DD8566">
+    <title>Master Tic-Tac-Toe</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%23DD8566%22/></svg>">
+
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
@@ -33,58 +37,58 @@
             padding: 20px;
             box-sizing: border-box;
             overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        h1 { margin-bottom: 20px; letter-spacing: -0.5px; }
+        /* Header & Help Button */
+        header { 
+            position: relative; width: 100%; max-width: 600px; 
+            display: flex; justify-content: center; align-items: center;
+            margin-bottom: 20px;
+        }
+        h1 { margin: 0; letter-spacing: -0.5px; font-size: 1.8rem; }
         
+        .help-btn {
+            position: absolute; right: 0; top: 0;
+            width: 32px; height: 32px;
+            border-radius: 50%; border: 2px solid var(--outline);
+            color: var(--primary); font-weight: bold; font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; background: transparent;
+        }
+        .help-btn:hover { background: var(--surface); transform: scale(1.1); }
+
+        /* Screens */
         .screen {
-            display: none;
-            width: 100%;
-            max-width: 600px;
-            flex-direction: column;
-            align-items: center;
-            animation: fadeIn 0.4s ease-out;
-            position: relative;
-            z-index: 10;
+            display: none; width: 100%; max-width: 600px;
+            flex-direction: column; align-items: center;
+            animation: fadeIn 0.4s ease-out; position: relative; z-index: 10;
         }
         .active { display: flex; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Controls */
+        /* UI Elements */
         .btn-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 20px 0; width: 100%; }
         
         button {
             padding: 14px 28px;
-            font-family: 'Roboto', sans-serif;
-            font-size: 1rem;
-            font-weight: 500;
-            background-color: var(--bg);
-            border: 1px solid var(--outline);
-            color: var(--text);
-            border-radius: var(--radius-btn);
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: var(--shadow-1);
+            font-family: 'Roboto', sans-serif; font-size: 1rem; font-weight: 500;
+            background-color: var(--bg); border: 1px solid var(--outline);
+            color: var(--text); border-radius: var(--radius-btn);
+            cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-1);
         }
         button:hover { background-color: var(--primary); color: white; border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-2); }
         button:active { transform: scale(0.98); }
 
         input {
-            padding: 14px;
-            background: var(--surface);
-            border: none;
-            border-bottom: 2px solid var(--outline);
-            color: var(--text);
-            text-align: center;
-            font-size: 1.1rem;
-            margin: 10px 0;
-            width: 80%;
-            outline: none;
-            transition: 0.2s;
+            padding: 14px; background: var(--surface); border: none;
+            border-bottom: 2px solid var(--outline); color: var(--text);
+            text-align: center; font-size: 1.1rem; margin: 10px 0; width: 80%;
+            outline: none; transition: 0.2s; border-radius: 4px 4px 0 0;
         }
         input:focus { border-bottom-color: var(--primary); background: #eaeaea; }
 
-        /* Toggle Switch */
+        /* Toggles & Codes */
         .toggle-wrapper { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.9rem; color: #777; }
         .switch { position: relative; display: inline-block; width: 40px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -93,21 +97,13 @@
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(16px); }
 
-        /* Code Display */
         .code-box {
-            background: var(--surface);
-            padding: 15px;
-            font-family: 'Roboto Mono', monospace;
-            font-size: 1.5rem;
-            border-radius: var(--radius-card);
-            margin: 15px;
-            user-select: all;
-            letter-spacing: 2px;
-            color: var(--primary);
-            border: 2px dashed var(--outline);
-            cursor: pointer;
+            background: var(--surface); padding: 15px;
+            font-family: 'Roboto Mono', monospace; font-size: 1.5rem;
+            border-radius: var(--radius-card); margin: 15px;
+            user-select: all; letter-spacing: 2px; color: var(--primary);
+            border: 2px dashed var(--outline); cursor: pointer;
         }
-        .code-box:hover { background: #eee; }
         .copy-hint { font-size: 0.8rem; color: #999; margin-top: -10px; margin-bottom: 20px;}
 
         /* Scoreboard */
@@ -117,34 +113,19 @@
             box-shadow: var(--shadow-1); border: 1px solid var(--outline);
         }
         .score-item { text-align: center; }
-        .score-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #999; }
-        .score-val { font-size: 1.8rem; font-weight: 700; }
+        .score-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #999; }
+        .score-val { font-size: 1.5rem; font-weight: 700; }
 
-        /* Game Container & Overlay */
-        #game-wrapper { position: relative; margin-top: 20px; transition: transform 0.5s; }
-        
-        /* SVG Line Overlay */
-        #win-line-svg {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 100;
-            overflow: visible;
-        }
+        /* Boards */
+        #game-wrapper { position: relative; margin-top: 10px; transition: transform 0.5s; width: 100%; display: flex; justify-content: center; }
+        #win-line-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; overflow: visible; }
         .win-path {
-            stroke: var(--primary);
-            stroke-width: 12;
-            stroke-linecap: round;
-            fill: none;
-            opacity: 0.85;
-            stroke-dasharray: 1000;
-            stroke-dashoffset: 1000;
-            animation: drawLine 0.8s forwards ease-out;
-            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2));
+            stroke: var(--primary); stroke-width: 12; stroke-linecap: round;
+            fill: none; opacity: 0.85; stroke-dasharray: 1000; stroke-dashoffset: 1000;
+            animation: drawLine 0.8s forwards ease-out; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2));
         }
         @keyframes drawLine { to { stroke-dashoffset: 0; } }
 
-        /* Board Styles */
         .cell {
             display: flex; align-items: center; justify-content: center;
             font-weight: 700; cursor: pointer; background: var(--bg);
@@ -155,131 +136,95 @@
         .cell.o { color: var(--primary); }
         .cell.highlight { background-color: #FFDBCF !important; transition: background 0.5s; }
 
-        /* Normal Board */
         #board-normal {
             display: grid; grid-template-columns: repeat(3, 80px); grid-template-rows: repeat(3, 80px);
             gap: 4px; background: var(--outline); padding: 4px; border-radius: 12px;
         }
         #board-normal .cell { font-size: 3rem; }
 
-        /* --- 3D Board --- */
+        /* 3D Board */
         #board-3d {
-            display: flex; 
-            flex-direction: column; 
-            gap: 40px; 
-            padding: 40px;
-            transform: perspective(1200px) rotateX(35deg) scale(0.9);
-            transform-style: preserve-3d;
-            transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex; flex-direction: row; gap: 30px; padding: 40px;
+            transform: perspective(1200px) rotateX(30deg) scale(0.9);
+            transform-style: preserve-3d; transition: all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-
-        .level-container {
-            position: relative;
-            transform-style: preserve-3d;
-            transition: all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-
+        .level-container { position: relative; transform-style: preserve-3d; transition: all 1.2s; }
         .layer-label {
-            position: absolute; right: -80px; top: 50%;
-            transform: translateY(-50%) rotateX(-35deg);
-            color: #999; font-size: 0.9rem; font-weight: 500;
-            transition: opacity 0.5s;
+            position: absolute; right: -20px; bottom: -30px; width: 100%; text-align: center;
+            transform: rotateX(-30deg); color: #999; font-size: 0.8rem; font-weight: 500; transition: opacity 0.5s;
         }
-
         .layer-3d {
-            display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(3, 60px);
-            gap: 6px; padding: 10px;
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(221, 133, 102, 0.3);
-            border-radius: 12px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05), 0 2px 5px rgba(0,0,0,0.05);
-            transform: translateZ(0); 
-            transition: all 1.2s;
+            display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px);
+            gap: 4px; padding: 8px; background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(221, 133, 102, 0.3); border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05); transform: translateZ(0); transition: all 1.2s;
         }
+        #board-3d .cell { font-size: 1.5rem; width: 50px; height: 50px; background: rgba(245, 245, 245, 0.6); }
         
-        #board-3d .cell { 
-            font-size: 2rem; width: 60px; height: 60px; 
-            background: rgba(245, 245, 245, 0.6); 
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-        }
-        #board-3d .cell:hover { background: #fff; transform: translateZ(5px); box-shadow: 0 5px 10px rgba(0,0,0,0.1); }
-
-        #board-3d.stacked { transform: perspective(1200px) rotateX(10deg) scale(1); gap: 0; }
-        #board-3d.stacked .level-container { margin-top: -190px; opacity: 0.8; }
+        #board-3d.stacked { transform: perspective(1200px) rotateX(10deg) scale(1); gap: 0; flex-direction: column; }
+        #board-3d.stacked .level-container { margin-top: -160px; opacity: 0.8; }
         #board-3d.stacked .level-container:first-child { margin-top: 0; opacity: 1; }
-        #board-3d.stacked .layer-3d { background: rgba(255, 255, 255, 0.6); box-shadow: none; border-color: var(--primary); }
         #board-3d.stacked .layer-label { opacity: 0; }
 
-
-        /* --- Ultimate Board (With Overlay Logic) --- */
+        /* Ultimate Board */
         #board-ultimate {
-            display: grid; grid-template-columns: repeat(3, auto); gap: 8px;
-            background: var(--text); padding: 8px; border-radius: 12px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(3, auto); gap: 6px;
+            background: var(--text); padding: 6px; border-radius: 12px;
         }
-
         .sub-grid { 
             display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; 
-            background: var(--outline); padding: 2px; 
-            position: relative; /* Essential for overlay */
+            background: var(--outline); padding: 2px; position: relative;
         }
-        
-        /* Highlight active grid */
         .sub-grid.active-zone { background: #FFDBCF; }
-        
-        /* THE GIANT OVERLAY LOGIC */
         .sub-grid.won-x::after, .sub-grid.won-o::after {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 100px;
-            font-weight: 900;
-            z-index: 10;
-            line-height: 1;
-            pointer-events: none; /* Let clicks pass (logic handles invalid moves) */
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 80px; font-weight: 900; z-index: 10; line-height: 1; pointer-events: none;
+            animation: popIn 0.3s;
         }
-
-        /* Overlay for X */
-        .sub-grid.won-x::after {
-            content: "X";
-            color: var(--text); /* Dark Grey */
-            opacity: 0.9;
-        }
-
-        /* Overlay for O */
-        .sub-grid.won-o::after {
-            content: "O";
-            color: var(--primary); /* Terra Cotta */
-            opacity: 0.9;
-        }
-
-        /* Fade out the small cells when won */
-        .sub-grid.won-x .cell, .sub-grid.won-o .cell {
-            opacity: 0.2;
-        }
-
-        #board-ultimate .cell { width: 35px; height: 35px; font-size: 1.2rem; background: var(--bg); }
+        .sub-grid.won-x::after { content: "X"; color: var(--text); opacity: 0.9; }
+        .sub-grid.won-o::after { content: "O"; color: var(--primary); opacity: 0.9; }
+        .sub-grid.won-x .cell, .sub-grid.won-o .cell { opacity: 0.2; }
+        #board-ultimate .cell { width: 32px; height: 32px; font-size: 1rem; background: var(--bg); }
 
         .back-link { background: transparent; color: #999; border: none; box-shadow: none; text-decoration: underline; margin-top: 20px;}
-        .back-link:hover { background: transparent; color: var(--primary); transform: none; box-shadow: none; }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 2000; display: none;
+            justify-content: center; align-items: center; padding: 20px;
+        }
+        .modal {
+            background: white; padding: 30px; border-radius: var(--radius-card);
+            max-width: 500px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .modal h3 { margin-top: 0; color: var(--primary); }
+        .modal ul { text-align: left; padding-left: 20px; color: #666; line-height: 1.6; }
 
-        /* Toast Notification */
         #toast {
             visibility: hidden; min-width: 200px; background-color: #333; color: #fff;
             text-align: center; border-radius: 4px; padding: 16px; position: fixed;
-            z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%);
-            font-size: 17px;
+            z-index: 3000; left: 50%; bottom: 30px; transform: translateX(-50%);
         }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        /* Mobile Tweaks */
+        @media (max-width: 600px) {
+            #board-3d { flex-direction: column; gap: 20px; transform: perspective(1200px) rotateX(30deg) scale(0.8); }
+            #board-3d.stacked { margin-top: 100px; }
+            .layer-label { right: auto; left: 50%; transform: translateX(-50%) rotateX(-30deg); bottom: -25px; }
+            #board-normal { grid-template-columns: repeat(3, 70px); grid-template-rows: repeat(3, 70px); }
+            #board-normal .cell { font-size: 2.5rem; }
+        }
 
     </style>
 </head>
 <body>
 
-    <h1>Master Tic-Tac-Toe</h1>
+    <header>
+        <h1>Master Tic-Tac-Toe</h1>
+        <button class="help-btn" onclick="toggleModal(true)">?</button>
+    </header>
 
     <div id="screen-start" class="screen active">
         <h2>Select Mode</h2>
@@ -288,13 +233,9 @@
             <button onclick="setupBot()">vs Bot</button>
             <button onclick="setupMultiplayerMenu()">Multiplayer</button>
         </div>
-        
         <div class="toggle-wrapper">
-            <label class="switch">
-                <input type="checkbox" id="anim-toggle" checked>
-                <span class="slider"></span>
-            </label>
-            <span>Enable Cinematic Win Animations</span>
+            <label class="switch"><input type="checkbox" id="anim-toggle" checked><span class="slider"></span></label>
+            <span>Cinematic Win Effects</span>
         </div>
     </div>
 
@@ -332,7 +273,7 @@
         <h2>Waiting for Opponent</h2>
         <p>Share this link or code:</p>
         <div id="host-code-display" class="code-box" onclick="copyJoinLink()">Generating...</div>
-        <div class="copy-hint">(Click box to copy link)</div>
+        <div class="copy-hint">(Tap box to copy link)</div>
         <p>Mode: <strong id="host-selected-mode" style="color:var(--primary)">-</strong></p>
         <div id="host-status" style="font-style: italic; color: #999;">Waiting for connection...</div>
         <button class="back-link" onclick="goBack('screen-mp-menu')">Cancel</button>
@@ -354,7 +295,6 @@
             <div class="score-item"><div class="score-label">Draws</div><div id="score-val-draw" class="score-val" style="color:#bbb;">0</div></div>
             <div class="score-item"><div class="score-label" id="score-name-2">P2</div><div id="score-val-2" class="score-val">0</div></div>
         </div>
-
         <h3 id="game-title" style="color: #bbb; font-weight: 500;">TIC-TAC-TOE</h3>
         <div id="turn-display">X's Turn</div>
 
@@ -365,6 +305,22 @@
 
         <button id="restart-btn" style="margin-top: 30px; display:none;" onclick="triggerRestart()">Play Next Round</button>
         <button class="back-link" onclick="location.href = window.location.pathname">Exit to Menu</button>
+    </div>
+
+    <div class="modal-overlay" id="rules-modal" onclick="toggleModal(false)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3>How to Play</h3>
+            <p><strong>Normal (3x3):</strong> Get 3 in a row to win.</p>
+            <p><strong>3D (3x3x3):</strong> Imagine 3 boards stacked. You can win on one board, or straight down through the stack, or diagonally through the cube.</p>
+            <p><strong>Ultimate:</strong></p>
+            <ul>
+                <li>The board has 9 mini-games.</li>
+                <li>If X plays in the top-right cell of a mini-game, O <strong>must</strong> play in the top-right mini-game next.</li>
+                <li>Win a mini-game to mark that large square.</li>
+                <li>Get 3 large squares in a row to win the game!</li>
+            </ul>
+            <button onclick="toggleModal(false)" style="width:100%">Got it</button>
+        </div>
     </div>
 
     <div id="toast">Link Copied!</div>
@@ -394,6 +350,10 @@
     });
 
     document.getElementById('anim-toggle').addEventListener('change', (e) => state.animationsEnabled = e.target.checked);
+
+    function toggleModal(show) {
+        document.getElementById('rules-modal').style.display = show ? 'flex' : 'none';
+    }
 
     /* --- NAVIGATION --- */
     function showScreen(id) {
@@ -646,10 +606,8 @@
     function handleUltimateMove(idx, p) {
         const s = Math.floor(idx/9);
         const subArr = state.board.slice(s*9, s*9+9);
-        // Only mark if not already won
         if (state.ultimateMacro[s] === null && checkWinNormal(subArr, p)) {
             state.ultimateMacro[s] = p; 
-            // Add class for overlay logic
             document.getElementById(`sub-${s}`).classList.add(p==='X'?'won-x':'won-o');
         }
         const rel = idx % 9;
