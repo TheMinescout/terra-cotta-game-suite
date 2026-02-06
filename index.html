@@ -3,186 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Tic-Tac-Toe Suite</title>
+    <title>Tic-Tac-Toe M3</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --bg: #121212;
-            --surface: #1e1e1e;
-            --primary: #bb86fc;
-            --secondary: #03dac6;
-            --error: #cf6679;
-            --on-bg: #ffffff;
-            --grid-line: #333;
+            /* Palette */
+            --bg: #FFFFFF;
+            --text: #474D4D;       /* Dark Grey */
+            --primary: #DD8566;    /* Terra Cotta */
+            --surface: #F5F5F5;    /* Very light grey for contrast */
+            --outline: #DBDCDF;    /* Light Grey for borders */
+            
+            /* Material 3 Specs */
+            --radius-btn: 24px;    /* Pill shape */
+            --radius-card: 16px;
+            --shadow-1: 0 2px 8px rgba(0,0,0,0.05);
+            --shadow-2: 0 4px 16px rgba(0,0,0,0.1);
+            
+            --grid-line: #DBDCDF;
         }
 
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Roboto', sans-serif;
             background-color: var(--bg);
-            color: var(--on-bg);
+            color: var(--text);
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
-        h1, h2, h3 { text-align: center; margin: 10px 0; }
-        p { text-align: center; color: #aaa; }
+        h1, h2, h3 { 
+            text-align: center; 
+            margin: 10px 0; 
+            font-weight: 700;
+            color: var(--text);
+        }
+        
+        h1 { letter-spacing: -0.5px; margin-bottom: 30px; }
+
+        p { text-align: center; color: #777; margin-bottom: 20px; }
         
         /* --- UI Screens --- */
         .screen {
             display: none;
             width: 100%;
-            max-width: 800px;
-            padding: 20px;
-            box-sizing: border-box;
+            max-width: 600px;
             flex-direction: column;
             align-items: center;
+            animation: fadeIn 0.4s ease-out;
         }
         .active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- Buttons & Inputs --- */
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 15px 0; }
+        /* --- Buttons & Inputs (Material 3 Style) --- */
+        .btn-group { 
+            display: flex; 
+            gap: 12px; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            margin: 20px 0; 
+            width: 100%;
+        }
         
         button {
-            padding: 12px 24px;
+            padding: 14px 28px;
+            font-family: 'Roboto', sans-serif;
             font-size: 1rem;
-            background: var(--surface);
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            border-radius: 4px;
+            font-weight: 500;
+            background-color: var(--bg);
+            border: 1px solid var(--outline);
+            color: var(--text);
+            border-radius: var(--radius-btn);
             cursor: pointer;
-            transition: all 0.2s;
-            margin: 5px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-1);
         }
-        button:hover { background: var(--primary); color: var(--bg); transform: scale(1.05); }
-        button:disabled { border-color: #555; color: #555; cursor: default; transform: none; }
+
+        button:hover { 
+            background-color: var(--primary); 
+            color: white; 
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-2);
+        }
+        
+        button:active { transform: scale(0.98); }
+
+        button:disabled {
+            background-color: #f0f0f0;
+            color: #aaa;
+            border-color: #eee;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
 
         input {
-            padding: 12px;
+            padding: 14px;
             background: var(--surface);
-            border: 1px solid #555;
-            color: white;
-            border-radius: 4px;
+            border: 1px solid transparent;
+            border-bottom: 2px solid var(--outline);
+            color: var(--text);
+            border-radius: 8px 8px 0 0;
             text-align: center;
-            font-size: 1rem;
-            margin: 5px;
+            font-size: 1.1rem;
+            margin: 10px 0;
+            width: 80%;
+            max-width: 300px;
+            outline: none;
+            transition: border-color 0.2s;
         }
-        .code-input { text-transform: uppercase; letter-spacing: 2px; }
+        input:focus { border-bottom-color: var(--primary); background: #eaeaea; }
+        
+        .code-input { text-transform: uppercase; letter-spacing: 3px; font-weight: bold; }
 
         .code-box {
-            background: black;
-            padding: 15px;
-            font-family: monospace;
+            background: var(--surface);
+            padding: 20px;
+            font-family: 'Roboto Mono', monospace;
             font-size: 2rem;
-            border: 2px dashed var(--secondary);
+            border-radius: var(--radius-card);
             margin: 20px;
             user-select: all;
             letter-spacing: 4px;
-            color: var(--secondary);
+            color: var(--primary);
             font-weight: bold;
+            border: 2px dashed var(--outline);
         }
 
         /* --- Scoreboard --- */
         #scoreboard {
             display: flex;
             justify-content: center;
-            gap: 20px;
-            margin-bottom: 15px;
-            background: var(--surface);
-            padding: 10px 20px;
-            border-radius: 20px;
-            border: 1px solid #333;
+            gap: 30px;
+            margin-bottom: 25px;
+            background: var(--bg);
+            padding: 15px 30px;
+            border-radius: var(--radius-btn);
+            box-shadow: var(--shadow-1);
+            border: 1px solid var(--outline);
         }
         .score-item { text-align: center; }
-        .score-val { font-size: 1.5rem; font-weight: bold; color: var(--secondary); }
+        .score-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #999; }
+        .score-val { font-size: 1.8rem; font-weight: 700; color: var(--text); }
+        .score-active { color: var(--primary); }
 
         /* --- Game Board Styles --- */
         .cell {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
+            font-weight: 700;
             cursor: pointer;
-            background: var(--surface);
+            background: var(--bg);
             transition: background 0.2s;
             user-select: none;
+            border-radius: 4px;
         }
-        .cell.taken span {
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes popIn {
-            0% { transform: scale(0); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
+        
+        /* Animation */
+        .cell.taken span { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
-        .cell.x { color: var(--secondary); }
-        .cell.o { color: var(--primary); }
-        .cell:hover:not(.taken) { filter: brightness(1.2); }
+        /* Player Colors */
+        .cell.x { color: var(--text); } /* Player 1 (Dark) */
+        .cell.o { color: var(--primary); } /* Player 2 (Terra Cotta) */
+        
+        .cell:hover:not(.taken) { background-color: var(--surface); }
 
         /* 1. Normal 3x3 */
         #board-normal {
             display: grid;
             grid-template-columns: repeat(3, 80px);
             grid-template-rows: repeat(3, 80px);
-            gap: 5px;
-            background: var(--grid-line);
-            padding: 5px;
+            gap: 4px;
+            background: var(--outline); /* The grid lines */
+            padding: 4px;
+            border-radius: 12px;
         }
-        #board-normal .cell { font-size: 2.5rem; }
+        #board-normal .cell { font-size: 3rem; background: var(--bg); border-radius: 8px;}
 
         /* 2. 3D 3x3x3 */
         #board-3d {
             display: flex;
-            gap: 20px;
+            gap: 30px;
             flex-wrap: wrap;
             justify-content: center;
+            padding: 20px;
+        }
+        .level-container {
+            background: var(--surface);
+            padding: 15px;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-1);
         }
         .layer-3d {
             display: grid;
             grid-template-columns: repeat(3, 50px);
             grid-template-rows: repeat(3, 50px);
             gap: 3px;
-            background: var(--grid-line);
+            background: var(--outline);
             padding: 3px;
-            transform: rotateX(15deg);
+            transform: rotateX(10deg);
+            border-radius: 8px;
         }
-        .layer-label { text-align: center; margin-bottom: 5px; color: #888; }
-        #board-3d .cell { font-size: 1.5rem; width: 50px; height: 50px; }
+        .layer-label { font-size: 0.9rem; font-weight: 500; color: var(--primary); margin-bottom: 8px; }
+        #board-3d .cell { font-size: 1.5rem; width: 50px; height: 50px; background: var(--bg); }
 
         /* 3. Ultimate Fixed Styles */
         #board-ultimate {
             display: grid;
             grid-template-columns: repeat(3, auto);
-            gap: 10px;
-            background: #444; 
-            padding: 10px;
+            gap: 8px;
+            background: var(--text); /* Dark thick lines for macro grid */
+            padding: 8px;
             margin: 0 auto;
+            border-radius: 12px;
         }
         .sub-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 2px;
-            background: var(--grid-line);
+            background: var(--outline); /* Light thin lines for micro grid */
             padding: 2px;
         }
-        .sub-grid.active-zone { background: var(--secondary); }
-        .sub-grid.won-x { background: rgba(3, 218, 198, 0.3); }
-        .sub-grid.won-o { background: rgba(187, 134, 252, 0.3); }
+        
+        /* Active Zone Highlight (Subtle Terra Cotta Tint) */
+        .sub-grid.active-zone { background: #FFDBCF; } 
+        
+        /* Won Subgrids */
+        .sub-grid.won-x { background: #dcdcdc; opacity: 0.8; }
+        .sub-grid.won-o { background: #EBCbc1; opacity: 0.8; }
 
         #board-ultimate .cell {
             width: 35px;
             height: 35px;
-            font-size: 1rem;
+            font-size: 1.2rem;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: var(--bg);
         }
 
-        #turn-display { margin-top: 20px; font-size: 1.2rem; font-weight: bold; }
-        #restart-btn { display: none; background: var(--secondary); color: black; border: none; font-weight: bold; margin-top: 20px;}
+        #turn-display { margin-top: 25px; font-size: 1.5rem; font-weight: 700; color: var(--text); }
+        
+        #restart-btn { 
+            display: none; 
+            margin-top: 30px; 
+            background-color: var(--text); 
+            color: white; 
+            border: none;
+        }
+        #restart-btn:hover { background-color: black; }
+
+        .back-link {
+            margin-top: 30px; 
+            background: transparent; 
+            color: #999; 
+            border: none; 
+            box-shadow: none; 
+            font-size: 0.9rem;
+            text-decoration: underline;
+        }
+        .back-link:hover { background: transparent; color: var(--primary); transform: none; box-shadow: none; }
 
     </style>
 </head>
@@ -193,9 +283,9 @@
     <div id="screen-start" class="screen active">
         <h2>Select Mode</h2>
         <div class="btn-group">
-            <button onclick="setupLocal()">Local (Pass & Play)</button>
-            <button onclick="setupBot()">Single Player (vs Bot)</button>
-            <button onclick="setupMultiplayerMenu()">Multiplayer (Online)</button>
+            <button onclick="setupLocal()">Pass & Play</button>
+            <button onclick="setupBot()">vs Bot</button>
+            <button onclick="setupMultiplayerMenu()">Multiplayer</button>
         </div>
     </div>
 
@@ -203,22 +293,26 @@
         <h2>Enter Names</h2>
         <input type="text" id="local-p1" placeholder="Player 1 Name (X)" value="Player 1">
         <input type="text" id="local-p2" placeholder="Player 2 Name (O)" value="Player 2">
-        <button onclick="finishSetup('local')">Next: Select Game</button>
-        <button onclick="goBack('screen-start')" style="background:transparent; color:#666;">Back</button>
+        <div class="btn-group">
+            <button onclick="finishSetup('local')">Next</button>
+        </div>
+        <button class="back-link" onclick="goBack('screen-start')">Back</button>
     </div>
 
     <div id="screen-mp-menu" class="screen">
         <h2>Multiplayer</h2>
         <input type="text" id="mp-name" placeholder="Enter Your Name" value="Player">
         <div class="btn-group">
-            <button onclick="setupHost()">Host a Game</button>
+            <button onclick="setupHost()">Host Game</button>
         </div>
-        <p>--- OR ---</p>
+        <p>OR</p>
+        <div class="btn-group" style="align-items: center;">
+            <input type="text" id="join-code" class="code-input" placeholder="9-CHAR CODE" maxlength="9" style="margin: 0; border-radius: 8px;">
+        </div>
         <div class="btn-group">
-            <input type="text" id="join-code" class="code-input" placeholder="9-CHAR CODE" maxlength="9">
             <button id="btn-join" onclick="joinGame()">Join Game</button>
         </div>
-        <button onclick="goBack('screen-start')" style="background:transparent; color:#666; margin-top: 20px;">Back</button>
+        <button class="back-link" onclick="goBack('screen-start')">Back</button>
     </div>
 
     <div id="screen-variant" class="screen">
@@ -228,16 +322,16 @@
             <button onclick="selectVariant('3d')">3D (3x3x3)</button>
             <button onclick="selectVariant('ultimate')">Ultimate</button>
         </div>
-        <button onclick="goBack('screen-start')" style="margin-top:20px; font-size:0.8rem">Back</button>
+        <button class="back-link" onclick="goBack('screen-start')">Back</button>
     </div>
 
     <div id="screen-host-waiting" class="screen">
         <h2>Waiting for Opponent</h2>
-        <p>Share this code with your friend:</p>
+        <p>Share this code:</p>
         <div id="host-code-display" class="code-box">Generating...</div>
-        <p>Game Mode: <span id="host-selected-mode" style="color:var(--secondary)">-</span></p>
-        <div id="host-status">Waiting for connection...</div>
-        <button onclick="goBack('screen-mp-menu')" style="margin-top:20px;">Cancel</button>
+        <p>Mode: <strong id="host-selected-mode" style="color:var(--primary)">-</strong></p>
+        <div id="host-status" style="font-style: italic; color: #999;">Waiting for connection...</div>
+        <button class="back-link" onclick="goBack('screen-mp-menu')">Cancel</button>
     </div>
 
     <div id="screen-difficulty" class="screen">
@@ -247,32 +341,32 @@
             <button onclick="startGameBot('medium')">Medium</button>
             <button onclick="startGameBot('hard')">Hard</button>
         </div>
-        <button onclick="goBack('screen-variant')" style="margin-top:20px; font-size:0.8rem">Back</button>
+        <button class="back-link" onclick="goBack('screen-variant')">Back</button>
     </div>
 
     <div id="screen-game" class="screen">
         <div id="scoreboard">
             <div class="score-item">
-                <div id="score-name-1">Player 1</div>
+                <div class="score-label" id="score-name-1">Player 1</div>
                 <div id="score-val-1" class="score-val">0</div>
             </div>
             <div class="score-item">
-                <div>Draws</div>
-                <div id="score-val-draw" class="score-val" style="color:#888;">0</div>
+                <div class="score-label">Draws</div>
+                <div id="score-val-draw" class="score-val" style="color:#bbb;">0</div>
             </div>
             <div class="score-item">
-                <div id="score-name-2">Player 2</div>
+                <div class="score-label" id="score-name-2">Player 2</div>
                 <div id="score-val-2" class="score-val">0</div>
             </div>
         </div>
 
-        <h3 id="game-title" style="color: #666; margin-bottom: 5px;">Tic-Tac-Toe</h3>
+        <h3 id="game-title" style="color: #bbb; font-weight: 500;">TIC-TAC-TOE</h3>
         <div id="turn-display">X's Turn</div>
 
-        <div id="board-container" style="margin-top: 20px;"></div>
+        <div id="board-container" style="margin-top: 25px;"></div>
 
         <button id="restart-btn" onclick="triggerRestart()">Play Next Round</button>
-        <button onclick="location.reload()" style="margin-top: 20px; background: transparent; color: #666; border: none; font-size: 0.8rem;">Exit to Menu</button>
+        <button class="back-link" onclick="location.reload()">Exit to Menu</button>
     </div>
 
 <script>
@@ -503,14 +597,14 @@
         
         if (state.mode === 'local') {
             el.innerText = `${pName}'s Turn (${state.turn})`;
-            el.style.color = state.turn === 'X' ? "var(--secondary)" : "var(--primary)";
+            el.style.color = state.turn === 'X' ? "var(--text)" : "var(--primary)";
         } else {
             if (state.turn === state.myPlayer) {
                 el.innerText = "Your Turn";
-                el.style.color = "var(--secondary)";
+                el.style.color = "var(--primary)";
             } else {
                 el.innerText = `${pName}'s Turn`;
-                el.style.color = "var(--on-bg)";
+                el.style.color = "#999";
             }
         }
     }
@@ -524,7 +618,7 @@
         } else {
             const winnerName = result === 'X' ? state.p1Name : state.p2Name;
             display.innerText = `${winnerName} Wins!`;
-            display.style.color = result === 'X' ? "var(--secondary)" : "var(--primary)";
+            display.style.color = result === 'X' ? "var(--text)" : "var(--primary)";
             if (result === 'X') state.scores.p1++; else state.scores.p2++;
             fireConfetti();
         }
@@ -533,16 +627,18 @@
     }
 
     function fireConfetti() {
-        if(window.confetti) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#bb86fc', '#03dac6'] });
+        if(window.confetti) confetti({ 
+            particleCount: 150, 
+            spread: 70, 
+            origin: { y: 0.6 }, 
+            colors: ['#DD8566', '#474D4D', '#DBDCDF'] 
+        });
     }
 
     /* --- LOGIC HELPERS --- */
     const WINS_3X3 = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
     function checkWinNormal(b, p) { return WINS_3X3.some(c => c.every(i => b[i] === p)); }
     function checkWin3D(b, p) {
-        const chk = (s, d) => { for(let i=0;i<3;i++) if(b[s+i*d]!==p) return false; return true; };
-        // Directions: 1(x), 3(y), 9(z), 4(xy), 2(xy-), 10(xz), 8(xz-), 12(yz), 6(yz-), 13(xyz), 11...
-        // Simplified loop logic
         const checkLine = (sx,sy,sz, dx,dy,dz) => {
             for(let i=0; i<3; i++) if (b[(sz+i*dz)*9 + (sy+i*dy)*3 + (sx+i*dx)] !== p) return false;
             return true;
@@ -592,7 +688,6 @@
         let idx = -1;
         if (state.difficulty==='easy') idx = moves[Math.floor(Math.random()*moves.length)];
         else {
-            // Medium/Hard logic simplified for brevity
             if (rand > (state.difficulty==='medium'?0.7:0.95)) idx = moves[Math.floor(Math.random()*moves.length)];
             else idx = findBestMove(moves);
         }
@@ -609,7 +704,7 @@
         return false;
     }
 
-    /* --- NETWORK (FIXED) --- */
+    /* --- NETWORK --- */
     function makeId(l) {
         const c='abcdefghijklmnopqrstuvwxyz0123456789'; let r='';
         for(let i=0;i<l;i++) r+=c.charAt(Math.floor(Math.random()*c.length)); return r;
@@ -629,11 +724,8 @@
         state.peer.on('connection', (c) => {
             state.conn = c;
             document.getElementById('host-status').innerText = "Connecting...";
-            
-            // KEY FIX: Setup listeners IMMEDIATELY for the host too
             setupConn();
 
-            // Wait for open to send start
             c.on('open', () => {
                 c.send({ 
                     type: 'start', 
@@ -664,7 +756,6 @@
     }
 
     function setupConn() {
-        // Listener for incoming data
         state.conn.on('data', (data) => {
             if (data.type === 'start') {
                 state.variant = data.variant;
@@ -680,7 +771,6 @@
                 updateTurnDisplay();
             }
             if (data.type === 'move') {
-                // Apply move if we receive one
                 makeMove(data.idx, state.myPlayer === 'X' ? 'O' : 'X');
             }
             if (data.type === 'restart') initGame(state.variant);
