@@ -121,7 +121,7 @@
         .score-val { font-size: 1.8rem; font-weight: 700; }
 
         /* Game Container & Overlay */
-        #game-wrapper { position: relative; margin-top: 20px; }
+        #game-wrapper { position: relative; margin-top: 20px; transition: transform 0.5s; }
         
         /* SVG Line Overlay */
         #win-line-svg {
@@ -133,13 +133,14 @@
         }
         .win-path {
             stroke: var(--primary);
-            stroke-width: 8;
+            stroke-width: 12;
             stroke-linecap: round;
             fill: none;
-            opacity: 0.8;
+            opacity: 0.85;
             stroke-dasharray: 1000;
             stroke-dashoffset: 1000;
-            animation: drawLine 1s forwards;
+            animation: drawLine 0.8s forwards ease-out;
+            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2));
         }
         @keyframes drawLine { to { stroke-dashoffset: 0; } }
 
@@ -161,53 +162,85 @@
         }
         #board-normal .cell { font-size: 3rem; }
 
-        /* 3D Board & Animation */
+        /* --- 3D Board Redesign --- */
         #board-3d {
-            display: flex; gap: 30px; flex-wrap: wrap; justify-content: center;
-            padding: 20px;
-            transition: all 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
-            perspective: 1000px; /* Essential for 3D effect */
+            display: flex; 
+            flex-direction: column; /* Stack naturally in flow */
+            gap: 40px; 
+            padding: 40px;
+            /* Improved Perspective */
+            transform: perspective(1200px) rotateX(35deg) scale(0.9);
             transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
         .level-container {
-            background: var(--surface); padding: 15px; border-radius: var(--radius-card);
-            box-shadow: var(--shadow-1);
-            transition: all 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
-            /* Ensure we can move these in 3D */
-            transform-style: preserve-3d; 
             position: relative;
+            transform-style: preserve-3d;
+            transition: all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .layer-label {
+            position: absolute;
+            right: -80px;
+            top: 50%;
+            transform: translateY(-50%) rotateX(-35deg); /* Counter-rotate text */
+            color: #999;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: opacity 0.5s;
         }
 
         .layer-3d {
-            display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px);
-            gap: 3px; background: var(--outline); padding: 3px;
-            transform: rotateX(25deg); /* Default tilt */
-            border-radius: 8px;
-            transition: transform 1.5s;
-        }
-        .layer-label { text-align: center; color: var(--primary); margin-bottom: 8px; transition: opacity 0.5s;}
-        #board-3d .cell { font-size: 1.5rem; width: 50px; height: 50px; }
-
-        /* THE STACK ANIMATION STATE */
-        #board-3d.stacked {
-            gap: 0;
-            height: 400px; /* Reserve space */
-            align-items: center;
-        }
-
-        #board-3d.stacked .level-container {
-            position: absolute;
-            background: rgba(255,255,255,0.85); /* Slight transparency to see through */
-            border: 2px solid var(--outline);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: grid; 
+            grid-template-columns: repeat(3, 60px); 
+            grid-template-rows: repeat(3, 60px);
+            gap: 6px; 
+            padding: 10px;
+            
+            /* Glassmorphism Look */
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(221, 133, 102, 0.3); /* Subtle Terra Cotta border */
+            border-radius: 12px;
+            box-shadow: 
+                0 10px 20px rgba(0,0,0,0.05),
+                0 2px 5px rgba(0,0,0,0.05);
+            
+            /* Thickness Illusion */
+            transform: translateZ(0); 
+            transition: all 1.2s;
         }
         
-        #board-3d.stacked .layer-label { opacity: 0; } /* Hide labels during stack */
+        #board-3d .cell { 
+            font-size: 2rem; 
+            width: 60px; height: 60px; 
+            background: rgba(245, 245, 245, 0.6); 
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+        #board-3d .cell:hover { background: #fff; transform: translateZ(5px); box-shadow: 0 5px 10px rgba(0,0,0,0.1); }
 
-        /* Positions for the stack (applied via JS or specific classes) */
-        /* We will calculate transforms in JS for dynamic centering, 
-           or use fixed classes if container is fixed. JS is safer for centering. */
+        /* 3D Stack Animation State */
+        #board-3d.stacked {
+            transform: perspective(1200px) rotateX(10deg) scale(1); /* Flatten angle slightly to see stack */
+            gap: 0; /* Remove gap */
+        }
+
+        /* When stacked, we want them to physically overlap.
+           Since we used flex-direction: column, we need to pull them up.
+        */
+        #board-3d.stacked .level-container {
+            margin-top: -190px; /* Overlap them */
+            opacity: 0.8; /* See through */
+        }
+        #board-3d.stacked .level-container:first-child { margin-top: 0; opacity: 1; } /* Bottom one stays */
+        
+        #board-3d.stacked .layer-3d {
+            background: rgba(255, 255, 255, 0.6);
+            box-shadow: none;
+            border-color: var(--primary);
+        }
+        #board-3d.stacked .layer-label { opacity: 0; }
+
 
         /* Ultimate */
         #board-ultimate {
@@ -341,23 +374,18 @@
         animationsEnabled: true
     };
 
-    /* --- INITIALIZATION & URL PARSING --- */
+    /* --- INITIALIZATION --- */
     window.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
-        const joinCode = urlParams.get('join'); // Check for ?join=CODE
-
+        const joinCode = urlParams.get('join');
         if (joinCode) {
-            // Auto-switch to Join Mode
             showScreen('screen-mp-menu');
             document.getElementById('join-code').value = joinCode;
             document.getElementById('mp-name').focus();
-            // Optional: Auto-click join if name exists (but let them type name first)
         }
     });
 
-    document.getElementById('anim-toggle').addEventListener('change', (e) => {
-        state.animationsEnabled = e.target.checked;
-    });
+    document.getElementById('anim-toggle').addEventListener('change', (e) => state.animationsEnabled = e.target.checked);
 
     /* --- NAVIGATION --- */
     function showScreen(id) {
@@ -372,7 +400,6 @@
     function setupBot() { state.mode = 'bot'; state.p1Name = "You"; state.p2Name = "Bot"; showScreen('screen-variant'); }
     function setupMultiplayerMenu() { showScreen('screen-mp-menu'); }
     function setupHost() { state.mode = 'host'; state.p1Name = document.getElementById('mp-name').value || "Host"; showScreen('screen-variant'); }
-    
     function finishSetup(from) {
         if (from === 'local') {
             state.p1Name = document.getElementById('local-p1').value || "Player 1";
@@ -380,7 +407,6 @@
             showScreen('screen-variant');
         }
     }
-
     function selectVariant(v) {
         state.variant = v;
         if (state.mode === 'bot') showScreen('screen-difficulty');
@@ -395,10 +421,9 @@
         state.active = true; state.turn = 'X'; state.board = [];
         state.ultimateMacro = Array(9).fill(null); state.activeSubGrid = -1;
         
-        // Clear old animations/lines
-        const svg = document.getElementById('win-line-svg');
-        svg.innerHTML = '';
-        document.getElementById('game-wrapper').style.transform = "none";
+        document.getElementById('win-line-svg').innerHTML = '';
+        const board3d = document.getElementById('board-3d');
+        if(board3d) board3d.classList.remove('stacked');
         
         document.getElementById('restart-btn').style.display = 'none';
         document.getElementById('game-title').innerText = variant.toUpperCase();
@@ -474,7 +499,7 @@
         let winLine = null;
         if (state.variant === 'normal') winLine = checkWinNormal(state.board, p);
         else if (state.variant === '3d') winLine = checkWin3D(state.board, p);
-        else if (state.variant === 'ultimate') winLine = handleUltimateMove(idx, p); // Ult returns true/false only here
+        else if (state.variant === 'ultimate') winLine = handleUltimateMove(idx, p);
 
         if (winLine) endGame(p, winLine);
         else if (isDraw()) endGame('draw');
@@ -513,14 +538,11 @@
             if (res === 'X') state.scores.p1++; else state.scores.p2++;
             updateScoreboard();
 
-            // ANIMATION SEQUENCE
             if (state.animationsEnabled && state.variant === '3d' && winLine) {
                 perform3DWin(winLine, () => showWinEffects(winLine));
             } else if (state.animationsEnabled && winLine) {
                 showWinEffects(winLine);
             } else {
-                // No anims or Ultimate (too complex to line draw easily)
-                if(winLine && Array.isArray(winLine)) highlightCells(winLine);
                 fireConfetti();
                 document.getElementById('restart-btn').style.display = 'inline-block';
             }
@@ -528,11 +550,17 @@
     }
 
     function highlightCells(indices) {
+        // Handle Ultimate (indices refer to subgrids) vs Normal/3D (indices refer to cells)
         indices.forEach(idx => {
             let el;
             if(state.variant==='normal') el=document.querySelector(`#board-normal .cell[data-idx='${idx}']`);
             else if(state.variant==='3d') el=document.querySelector(`.layer-3d .cell[data-idx='${idx}']`);
-            if(el) el.classList.add('highlight');
+            else if(state.variant==='ultimate') el=document.getElementById(`sub-${idx}`); // Highlight the winning sub-grids
+            
+            if(el) {
+                if(state.variant === 'ultimate') el.style.boxShadow = "inset 0 0 0 4px var(--primary)";
+                else el.classList.add('highlight');
+            }
         });
     }
 
@@ -543,52 +571,24 @@
         setTimeout(() => { document.getElementById('restart-btn').style.display = 'inline-block'; }, 1000);
     }
 
-    // --- 3D STACK ANIMATION LOGIC ---
     function perform3DWin(line, callback) {
         const board3d = document.getElementById('board-3d');
-        const levels = [document.getElementById('lvl-0'), document.getElementById('lvl-1'), document.getElementById('lvl-2')];
-        
-        // 1. Add class to change container layout
+        // Add class to trigger the collapse via CSS
         board3d.classList.add('stacked');
-
-        // 2. Animate levels to stack in center
-        // We use absolute positioning tricks or transforms.
-        // Let's use transforms to move them from their current Flex positions to the center stack.
-        // Simplified: Move them all to center x, and varying y.
-        
-        // Stack order: Bottom (Lvl 0) -> Top (Lvl 2)
-        // Visually: Lvl 0 at bottom of screen, Lvl 2 at top? Or "pancake stack"?
-        // "Stack the 3 on top of each other" usually implies Z-axis stacking (pancakes).
-        
-        levels.forEach((el, i) => {
-            el.style.position = 'absolute';
-            el.style.left = '50%';
-            el.style.top = '50%';
-            // Stack them vertically with slight offset to see depth
-            // i=0 (bottom level), i=2 (top level)
-            // TranslateZ moves them towards camera.
-            // TranslateY tilts them.
-            el.style.transform = `translate(-50%, -50%) translateZ(${i * 60}px) translateY(${-i * 30}px)`;
-            el.style.zIndex = i + 10;
-        });
-
-        // Wait for CSS transition (1.5s) then callback
-        setTimeout(callback, 1600);
+        setTimeout(callback, 1200); // Wait for transition
     }
 
     function drawSVGLine(indices) {
-        // Only works for Normal and 3D (flattened or stacked)
-        // We need to calculate start and end points relative to game-wrapper
         if (!indices || indices.length === 0) return;
-        
         const startIdx = indices[0];
         const endIdx = indices[indices.length - 1];
 
-        // Helper to get center of a cell
+        // Helper to get center
         const getCenter = (idx) => {
             let el;
             if(state.variant==='normal') el=document.querySelector(`#board-normal .cell[data-idx='${idx}']`);
             else if(state.variant==='3d') el=document.querySelector(`.layer-3d .cell[data-idx='${idx}']`);
+            else if(state.variant==='ultimate') el=document.getElementById(`sub-${idx}`); // Get center of the sub-grid
             
             if(!el) return {x:0, y:0};
             const rect = el.getBoundingClientRect();
@@ -618,6 +618,7 @@
         return null; 
     }
     function checkWin3D(b, p) {
+        // Return winning line indices
         const checkLine = (sx,sy,sz, dx,dy,dz) => {
             let line = [];
             for(let i=0; i<3; i++) {
@@ -628,12 +629,15 @@
             return line;
         };
         let l;
+        // Orthogonal
         for(let z=0; z<3; z++) for(let y=0; y<3; y++) if(l=checkLine(0,y,z, 1,0,0)) return l;
         for(let z=0; z<3; z++) for(let x=0; x<3; x++) if(l=checkLine(x,0,z, 0,1,0)) return l;
         for(let y=0; y<3; y++) for(let x=0; x<3; x++) if(l=checkLine(x,y,0, 0,0,1)) return l;
+        // 2D Diags
         for(let z=0; z<3; z++) { if(l=checkLine(0,0,z, 1,1,0)) return l; if(l=checkLine(2,0,z, -1,1,0)) return l; }
         for(let y=0; y<3; y++) { if(l=checkLine(0,y,0, 1,0,1)) return l; if(l=checkLine(2,y,0, -1,0,1)) return l; }
         for(let x=0; x<3; x++) { if(l=checkLine(x,0,0, 0,1,1)) return l; if(l=checkLine(x,2,0, 0,-1,1)) return l; }
+        // 3D Diags
         if(l=checkLine(0,0,0, 1,1,1)) return l; if(l=checkLine(2,0,0, -1,1,1)) return l;
         if(l=checkLine(0,2,0, 1,-1,1)) return l; if(l=checkLine(2,2,0, -1,-1,1)) return l;
         return null;
@@ -683,9 +687,7 @@
         showScreen('screen-host-waiting'); document.getElementById('host-selected-mode').innerText = state.variant.toUpperCase();
         state.hostId = makeId(9);
         state.peer = new Peer(state.hostId);
-        state.peer.on('open', (id) => { 
-            document.getElementById('host-code-display').innerText = id; 
-        });
+        state.peer.on('open', (id) => { document.getElementById('host-code-display').innerText = id; });
         state.peer.on('error', () => { state.peer.destroy(); startHostingProcess(); });
         state.peer.on('connection', (c) => {
             state.conn = c; document.getElementById('host-status').innerText = "Connecting..."; setupConn();
@@ -715,7 +717,6 @@
     }
     function triggerRestart() { initGame(state.variant); if((state.mode==='host'||state.mode==='join')&&state.conn) state.conn.send({type:'restart'}); }
 
-    /* --- SHARING --- */
     function copyJoinLink() {
         const id = document.getElementById('host-code-display').innerText;
         if(id === 'Generating...') return;
