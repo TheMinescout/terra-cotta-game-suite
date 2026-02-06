@@ -6,24 +6,19 @@
     <title>Tic-Tac-Toe M3</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            /* Palette */
             --bg: #FFFFFF;
-            --text: #474D4D;       /* Dark Grey */
-            --primary: #DD8566;    /* Terra Cotta */
-            --surface: #F5F5F5;    /* Very light grey for contrast */
-            --outline: #DBDCDF;    /* Light Grey for borders */
-            
-            /* Material 3 Specs */
-            --radius-btn: 24px;    /* Pill shape */
+            --text: #474D4D;
+            --primary: #DD8566;
+            --surface: #F5F5F5;
+            --outline: #DBDCDF;
+            --radius-btn: 24px;
             --radius-card: 16px;
             --shadow-1: 0 2px 8px rgba(0,0,0,0.05);
-            --shadow-2: 0 4px 16px rgba(0,0,0,0.1);
-            
-            --grid-line: #DBDCDF;
+            --shadow-2: 0 8px 24px rgba(0,0,0,0.1);
         }
 
         body {
@@ -37,20 +32,11 @@
             min-height: 100vh;
             padding: 20px;
             box-sizing: border-box;
+            overflow-x: hidden;
         }
 
-        h1, h2, h3 { 
-            text-align: center; 
-            margin: 10px 0; 
-            font-weight: 700;
-            color: var(--text);
-        }
+        h1 { margin-bottom: 20px; letter-spacing: -0.5px; }
         
-        h1 { letter-spacing: -0.5px; margin-bottom: 30px; }
-
-        p { text-align: center; color: #777; margin-bottom: 20px; }
-        
-        /* --- UI Screens --- */
         .screen {
             display: none;
             width: 100%;
@@ -58,19 +44,14 @@
             flex-direction: column;
             align-items: center;
             animation: fadeIn 0.4s ease-out;
+            position: relative;
+            z-index: 10;
         }
         .active { display: flex; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- Buttons & Inputs (Material 3 Style) --- */
-        .btn-group { 
-            display: flex; 
-            gap: 12px; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            margin: 20px 0; 
-            width: 100%;
-        }
+        /* Controls */
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 20px 0; width: 100%; }
         
         button {
             padding: 14px 28px;
@@ -82,197 +63,176 @@
             color: var(--text);
             border-radius: var(--radius-btn);
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s;
             box-shadow: var(--shadow-1);
         }
-
-        button:hover { 
-            background-color: var(--primary); 
-            color: white; 
-            border-color: var(--primary);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-2);
-        }
-        
+        button:hover { background-color: var(--primary); color: white; border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-2); }
         button:active { transform: scale(0.98); }
-
-        button:disabled {
-            background-color: #f0f0f0;
-            color: #aaa;
-            border-color: #eee;
-            box-shadow: none;
-            cursor: not-allowed;
-            transform: none;
-        }
 
         input {
             padding: 14px;
             background: var(--surface);
-            border: 1px solid transparent;
+            border: none;
             border-bottom: 2px solid var(--outline);
             color: var(--text);
-            border-radius: 8px 8px 0 0;
             text-align: center;
             font-size: 1.1rem;
             margin: 10px 0;
             width: 80%;
-            max-width: 300px;
             outline: none;
-            transition: border-color 0.2s;
+            transition: 0.2s;
         }
         input:focus { border-bottom-color: var(--primary); background: #eaeaea; }
-        
-        .code-input { text-transform: uppercase; letter-spacing: 3px; font-weight: bold; }
 
+        /* Toggle Switch */
+        .toggle-wrapper { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.9rem; color: #777; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+        /* Code Display */
         .code-box {
             background: var(--surface);
-            padding: 20px;
+            padding: 15px;
             font-family: 'Roboto Mono', monospace;
-            font-size: 2rem;
+            font-size: 1.5rem;
             border-radius: var(--radius-card);
-            margin: 20px;
+            margin: 15px;
             user-select: all;
-            letter-spacing: 4px;
+            letter-spacing: 2px;
             color: var(--primary);
-            font-weight: bold;
             border: 2px dashed var(--outline);
+            cursor: pointer;
         }
+        .code-box:hover { background: #eee; }
+        .copy-hint { font-size: 0.8rem; color: #999; margin-top: -10px; margin-bottom: 20px;}
 
-        /* --- Scoreboard --- */
+        /* Scoreboard */
         #scoreboard {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 25px;
-            background: var(--bg);
-            padding: 15px 30px;
-            border-radius: var(--radius-btn);
-            box-shadow: var(--shadow-1);
-            border: 1px solid var(--outline);
+            display: flex; justify-content: center; gap: 30px; margin-bottom: 25px;
+            background: var(--bg); padding: 15px 30px; border-radius: var(--radius-btn);
+            box-shadow: var(--shadow-1); border: 1px solid var(--outline);
         }
         .score-item { text-align: center; }
         .score-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #999; }
-        .score-val { font-size: 1.8rem; font-weight: 700; color: var(--text); }
-        .score-active { color: var(--primary); }
+        .score-val { font-size: 1.8rem; font-weight: 700; }
 
-        /* --- Game Board Styles --- */
+        /* Game Container & Overlay */
+        #game-wrapper { position: relative; margin-top: 20px; }
+        
+        /* SVG Line Overlay */
+        #win-line-svg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 100;
+            overflow: visible;
+        }
+        .win-path {
+            stroke: var(--primary);
+            stroke-width: 8;
+            stroke-linecap: round;
+            fill: none;
+            opacity: 0.8;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: drawLine 1s forwards;
+        }
+        @keyframes drawLine { to { stroke-dashoffset: 0; } }
+
+        /* Board Styles */
         .cell {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            cursor: pointer;
-            background: var(--bg);
-            transition: background 0.2s;
-            user-select: none;
-            border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; cursor: pointer; background: var(--bg);
+            transition: background 0.2s; user-select: none; border-radius: 4px;
+            position: relative; z-index: 2;
         }
-        
-        /* Animation */
-        .cell.taken span { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .cell.x { color: var(--text); }
+        .cell.o { color: var(--primary); }
+        .cell.highlight { background-color: #FFDBCF !important; transition: background 0.5s; }
 
-        /* Player Colors */
-        .cell.x { color: var(--text); } /* Player 1 (Dark) */
-        .cell.o { color: var(--primary); } /* Player 2 (Terra Cotta) */
-        
-        .cell:hover:not(.taken) { background-color: var(--surface); }
-
-        /* 1. Normal 3x3 */
+        /* Normal Board */
         #board-normal {
-            display: grid;
-            grid-template-columns: repeat(3, 80px);
-            grid-template-rows: repeat(3, 80px);
-            gap: 4px;
-            background: var(--outline); /* The grid lines */
-            padding: 4px;
-            border-radius: 12px;
+            display: grid; grid-template-columns: repeat(3, 80px); grid-template-rows: repeat(3, 80px);
+            gap: 4px; background: var(--outline); padding: 4px; border-radius: 12px;
         }
-        #board-normal .cell { font-size: 3rem; background: var(--bg); border-radius: 8px;}
+        #board-normal .cell { font-size: 3rem; }
 
-        /* 2. 3D 3x3x3 */
+        /* 3D Board & Animation */
         #board-3d {
-            display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
-            justify-content: center;
+            display: flex; gap: 30px; flex-wrap: wrap; justify-content: center;
             padding: 20px;
+            transition: all 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            perspective: 1000px; /* Essential for 3D effect */
+            transform-style: preserve-3d;
         }
+
         .level-container {
-            background: var(--surface);
-            padding: 15px;
-            border-radius: var(--radius-card);
+            background: var(--surface); padding: 15px; border-radius: var(--radius-card);
             box-shadow: var(--shadow-1);
+            transition: all 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            /* Ensure we can move these in 3D */
+            transform-style: preserve-3d; 
+            position: relative;
         }
+
         .layer-3d {
-            display: grid;
-            grid-template-columns: repeat(3, 50px);
-            grid-template-rows: repeat(3, 50px);
-            gap: 3px;
-            background: var(--outline);
-            padding: 3px;
-            transform: rotateX(10deg);
+            display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px);
+            gap: 3px; background: var(--outline); padding: 3px;
+            transform: rotateX(25deg); /* Default tilt */
             border-radius: 8px;
+            transition: transform 1.5s;
         }
-        .layer-label { font-size: 0.9rem; font-weight: 500; color: var(--primary); margin-bottom: 8px; }
-        #board-3d .cell { font-size: 1.5rem; width: 50px; height: 50px; background: var(--bg); }
+        .layer-label { text-align: center; color: var(--primary); margin-bottom: 8px; transition: opacity 0.5s;}
+        #board-3d .cell { font-size: 1.5rem; width: 50px; height: 50px; }
 
-        /* 3. Ultimate Fixed Styles */
-        #board-ultimate {
-            display: grid;
-            grid-template-columns: repeat(3, auto);
-            gap: 8px;
-            background: var(--text); /* Dark thick lines for macro grid */
-            padding: 8px;
-            margin: 0 auto;
-            border-radius: 12px;
-        }
-        .sub-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
-            background: var(--outline); /* Light thin lines for micro grid */
-            padding: 2px;
-        }
-        
-        /* Active Zone Highlight (Subtle Terra Cotta Tint) */
-        .sub-grid.active-zone { background: #FFDBCF; } 
-        
-        /* Won Subgrids */
-        .sub-grid.won-x { background: #dcdcdc; opacity: 0.8; }
-        .sub-grid.won-o { background: #EBCbc1; opacity: 0.8; }
-
-        #board-ultimate .cell {
-            width: 35px;
-            height: 35px;
-            font-size: 1.2rem;
-            display: flex;
+        /* THE STACK ANIMATION STATE */
+        #board-3d.stacked {
+            gap: 0;
+            height: 400px; /* Reserve space */
             align-items: center;
-            justify-content: center;
-            background: var(--bg);
         }
 
-        #turn-display { margin-top: 25px; font-size: 1.5rem; font-weight: 700; color: var(--text); }
+        #board-3d.stacked .level-container {
+            position: absolute;
+            background: rgba(255,255,255,0.85); /* Slight transparency to see through */
+            border: 2px solid var(--outline);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
         
-        #restart-btn { 
-            display: none; 
-            margin-top: 30px; 
-            background-color: var(--text); 
-            color: white; 
-            border: none;
-        }
-        #restart-btn:hover { background-color: black; }
+        #board-3d.stacked .layer-label { opacity: 0; } /* Hide labels during stack */
 
-        .back-link {
-            margin-top: 30px; 
-            background: transparent; 
-            color: #999; 
-            border: none; 
-            box-shadow: none; 
-            font-size: 0.9rem;
-            text-decoration: underline;
+        /* Positions for the stack (applied via JS or specific classes) */
+        /* We will calculate transforms in JS for dynamic centering, 
+           or use fixed classes if container is fixed. JS is safer for centering. */
+
+        /* Ultimate */
+        #board-ultimate {
+            display: grid; grid-template-columns: repeat(3, auto); gap: 8px;
+            background: var(--text); padding: 8px; border-radius: 12px; margin: 0 auto;
         }
+        .sub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--outline); padding: 2px; }
+        .sub-grid.active-zone { background: #FFDBCF; }
+        .sub-grid.won-x { background: #dcdcdc; opacity: 0.9; }
+        .sub-grid.won-o { background: #EBCbc1; opacity: 0.9; }
+        #board-ultimate .cell { width: 35px; height: 35px; font-size: 1.2rem; background: var(--bg); }
+
+        .back-link { background: transparent; color: #999; border: none; box-shadow: none; text-decoration: underline; margin-top: 20px;}
         .back-link:hover { background: transparent; color: var(--primary); transform: none; box-shadow: none; }
+
+        /* Toast Notification */
+        #toast {
+            visibility: hidden; min-width: 200px; background-color: #333; color: #fff;
+            text-align: center; border-radius: 4px; padding: 16px; position: fixed;
+            z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%);
+            font-size: 17px;
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
 
     </style>
 </head>
@@ -287,31 +247,33 @@
             <button onclick="setupBot()">vs Bot</button>
             <button onclick="setupMultiplayerMenu()">Multiplayer</button>
         </div>
+        
+        <div class="toggle-wrapper">
+            <label class="switch">
+                <input type="checkbox" id="anim-toggle" checked>
+                <span class="slider"></span>
+            </label>
+            <span>Enable Cinematic Win Animations</span>
+        </div>
     </div>
 
     <div id="screen-local-setup" class="screen">
         <h2>Enter Names</h2>
-        <input type="text" id="local-p1" placeholder="Player 1 Name (X)" value="Player 1">
-        <input type="text" id="local-p2" placeholder="Player 2 Name (O)" value="Player 2">
-        <div class="btn-group">
-            <button onclick="finishSetup('local')">Next</button>
-        </div>
+        <input type="text" id="local-p1" placeholder="Player 1 (X)" value="Player 1">
+        <input type="text" id="local-p2" placeholder="Player 2 (O)" value="Player 2">
+        <div class="btn-group"><button onclick="finishSetup('local')">Next</button></div>
         <button class="back-link" onclick="goBack('screen-start')">Back</button>
     </div>
 
     <div id="screen-mp-menu" class="screen">
         <h2>Multiplayer</h2>
-        <input type="text" id="mp-name" placeholder="Enter Your Name" value="Player">
-        <div class="btn-group">
-            <button onclick="setupHost()">Host Game</button>
-        </div>
+        <input type="text" id="mp-name" placeholder="Your Name" value="Player">
+        <div class="btn-group"><button onclick="setupHost()">Host Game</button></div>
         <p>OR</p>
         <div class="btn-group" style="align-items: center;">
             <input type="text" id="join-code" class="code-input" placeholder="9-CHAR CODE" maxlength="9" style="margin: 0; border-radius: 8px;">
         </div>
-        <div class="btn-group">
-            <button id="btn-join" onclick="joinGame()">Join Game</button>
-        </div>
+        <div class="btn-group"><button id="btn-join" onclick="joinGame()">Join Game</button></div>
         <button class="back-link" onclick="goBack('screen-start')">Back</button>
     </div>
 
@@ -327,8 +289,9 @@
 
     <div id="screen-host-waiting" class="screen">
         <h2>Waiting for Opponent</h2>
-        <p>Share this code:</p>
-        <div id="host-code-display" class="code-box">Generating...</div>
+        <p>Share this link or code:</p>
+        <div id="host-code-display" class="code-box" onclick="copyJoinLink()">Generating...</div>
+        <div class="copy-hint">(Click box to copy link)</div>
         <p>Mode: <strong id="host-selected-mode" style="color:var(--primary)">-</strong></p>
         <div id="host-status" style="font-style: italic; color: #999;">Waiting for connection...</div>
         <button class="back-link" onclick="goBack('screen-mp-menu')">Cancel</button>
@@ -346,48 +309,55 @@
 
     <div id="screen-game" class="screen">
         <div id="scoreboard">
-            <div class="score-item">
-                <div class="score-label" id="score-name-1">Player 1</div>
-                <div id="score-val-1" class="score-val">0</div>
-            </div>
-            <div class="score-item">
-                <div class="score-label">Draws</div>
-                <div id="score-val-draw" class="score-val" style="color:#bbb;">0</div>
-            </div>
-            <div class="score-item">
-                <div class="score-label" id="score-name-2">Player 2</div>
-                <div id="score-val-2" class="score-val">0</div>
-            </div>
+            <div class="score-item"><div class="score-label" id="score-name-1">P1</div><div id="score-val-1" class="score-val">0</div></div>
+            <div class="score-item"><div class="score-label">Draws</div><div id="score-val-draw" class="score-val" style="color:#bbb;">0</div></div>
+            <div class="score-item"><div class="score-label" id="score-name-2">P2</div><div id="score-val-2" class="score-val">0</div></div>
         </div>
 
         <h3 id="game-title" style="color: #bbb; font-weight: 500;">TIC-TAC-TOE</h3>
         <div id="turn-display">X's Turn</div>
 
-        <div id="board-container" style="margin-top: 25px;"></div>
+        <div id="game-wrapper">
+            <svg id="win-line-svg"></svg>
+            <div id="board-container"></div>
+        </div>
 
-        <button id="restart-btn" onclick="triggerRestart()">Play Next Round</button>
-        <button class="back-link" onclick="location.reload()">Exit to Menu</button>
+        <button id="restart-btn" style="margin-top: 30px; display:none;" onclick="triggerRestart()">Play Next Round</button>
+        <button class="back-link" onclick="location.href = window.location.pathname">Exit to Menu</button>
     </div>
+
+    <div id="toast">Link Copied!</div>
 
 <script>
     /* --- GLOBAL STATE --- */
     const state = {
         screen: 'screen-start',
-        mode: null, 
-        variant: null, 
-        difficulty: null,
-        p1Name: "Player 1",
-        p2Name: "Player 2",
+        mode: null, variant: null, difficulty: null,
+        p1Name: "Player 1", p2Name: "Player 2",
         scores: { p1: 0, p2: 0, draw: 0 },
-        board: [], 
-        turn: 'X',
-        myPlayer: 'X', 
-        active: false,
-        ultimateMacro: [], 
-        activeSubGrid: -1, 
-        peer: null,
-        conn: null
+        board: [], turn: 'X', myPlayer: 'X', active: false,
+        ultimateMacro: [], activeSubGrid: -1,
+        peer: null, conn: null, hostId: null,
+        animationsEnabled: true
     };
+
+    /* --- INITIALIZATION & URL PARSING --- */
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const joinCode = urlParams.get('join'); // Check for ?join=CODE
+
+        if (joinCode) {
+            // Auto-switch to Join Mode
+            showScreen('screen-mp-menu');
+            document.getElementById('join-code').value = joinCode;
+            document.getElementById('mp-name').focus();
+            // Optional: Auto-click join if name exists (but let them type name first)
+        }
+    });
+
+    document.getElementById('anim-toggle').addEventListener('change', (e) => {
+        state.animationsEnabled = e.target.checked;
+    });
 
     /* --- NAVIGATION --- */
     function showScreen(id) {
@@ -395,35 +365,14 @@
         document.getElementById(id).classList.add('active');
         state.screen = id;
     }
-
-    function goBack(target) { 
-        if (state.peer) { state.peer.destroy(); state.peer = null; }
-        showScreen(target); 
-    }
+    function goBack(target) { if (state.peer) { state.peer.destroy(); state.peer = null; } showScreen(target); }
 
     /* --- SETUP FLOWS --- */
-    function setupLocal() {
-        state.mode = 'local';
-        showScreen('screen-local-setup');
-    }
-
-    function setupBot() {
-        state.mode = 'bot';
-        state.p1Name = "You";
-        state.p2Name = "Bot";
-        showScreen('screen-variant');
-    }
-
-    function setupMultiplayerMenu() {
-        showScreen('screen-mp-menu');
-    }
-
-    function setupHost() {
-        state.mode = 'host';
-        state.p1Name = document.getElementById('mp-name').value || "Host";
-        showScreen('screen-variant');
-    }
-
+    function setupLocal() { state.mode = 'local'; showScreen('screen-local-setup'); }
+    function setupBot() { state.mode = 'bot'; state.p1Name = "You"; state.p2Name = "Bot"; showScreen('screen-variant'); }
+    function setupMultiplayerMenu() { showScreen('screen-mp-menu'); }
+    function setupHost() { state.mode = 'host'; state.p1Name = document.getElementById('mp-name').value || "Host"; showScreen('screen-variant'); }
+    
     function finishSetup(from) {
         if (from === 'local') {
             state.p1Name = document.getElementById('local-p1').value || "Player 1";
@@ -434,35 +383,26 @@
 
     function selectVariant(v) {
         state.variant = v;
-        if (state.mode === 'bot') {
-            showScreen('screen-difficulty');
-        } else if (state.mode === 'host') {
-            startHostingProcess();
-        } else {
-            initGame(v);
-        }
+        if (state.mode === 'bot') showScreen('screen-difficulty');
+        else if (state.mode === 'host') startHostingProcess();
+        else initGame(v);
     }
-
-    function startGameBot(diff) {
-        state.difficulty = diff;
-        state.p2Name = "Bot (" + diff + ")";
-        state.myPlayer = 'X'; 
-        initGame(state.variant);
-    }
+    function startGameBot(d) { state.difficulty = d; state.p2Name = "Bot ("+d+")"; state.myPlayer = 'X'; initGame(state.variant); }
 
     /* --- GAME INIT --- */
     function initGame(variant) {
         showScreen('screen-game');
-        state.active = true;
-        state.turn = 'X';
-        state.board = [];
-        state.ultimateMacro = Array(9).fill(null);
-        state.activeSubGrid = -1;
-
+        state.active = true; state.turn = 'X'; state.board = [];
+        state.ultimateMacro = Array(9).fill(null); state.activeSubGrid = -1;
+        
+        // Clear old animations/lines
+        const svg = document.getElementById('win-line-svg');
+        svg.innerHTML = '';
+        document.getElementById('game-wrapper').style.transform = "none";
+        
         document.getElementById('restart-btn').style.display = 'none';
         document.getElementById('game-title').innerText = variant.toUpperCase();
-        updateScoreboard();
-        updateTurnDisplay();
+        updateScoreboard(); updateTurnDisplay();
 
         const container = document.getElementById('board-container');
         container.innerHTML = '';
@@ -482,213 +422,250 @@
 
     /* --- RENDERERS --- */
     function createCell(idx) {
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        cell.dataset.idx = idx;
-        cell.onclick = () => handleInput(idx);
-        return cell;
+        const c = document.createElement('div'); c.className = 'cell'; c.dataset.idx = idx; c.onclick = () => handleInput(idx); return c;
     }
-
-    function initNormal(container) {
-        const grid = document.createElement('div');
-        grid.id = 'board-normal';
-        state.board = Array(9).fill(null);
-        for (let i = 0; i < 9; i++) grid.appendChild(createCell(i));
-        container.appendChild(grid);
+    function initNormal(con) {
+        const g = document.createElement('div'); g.id = 'board-normal'; state.board = Array(9).fill(null);
+        for(let i=0;i<9;i++) g.appendChild(createCell(i)); con.appendChild(g);
     }
-
-    function init3D(container) {
-        const wrapper = document.createElement('div');
-        wrapper.id = 'board-3d';
-        state.board = Array(27).fill(null); 
-        for (let z = 0; z < 3; z++) {
-            const layerBox = document.createElement('div');
-            layerBox.className = 'level-container';
-            const label = document.createElement('div');
-            label.className = 'layer-label';
-            label.innerText = `Level ${z+1}`;
-            layerBox.appendChild(label);
-            const layer = document.createElement('div');
-            layer.className = 'layer-3d';
-            for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) {
-                layer.appendChild(createCell(z*9 + y*3 + x));
-            }
-            layerBox.appendChild(layer);
-            wrapper.appendChild(layerBox);
+    function init3D(con) {
+        const w = document.createElement('div'); w.id = 'board-3d'; state.board = Array(27).fill(null);
+        for(let z=0;z<3;z++) {
+            const lb = document.createElement('div'); lb.className = 'level-container'; lb.id = `lvl-${z}`;
+            const lbl = document.createElement('div'); lbl.className = 'layer-label'; lbl.innerText = `Level ${z+1}`; lb.appendChild(lbl);
+            const l = document.createElement('div'); l.className = 'layer-3d';
+            for(let y=0;y<3;y++) for(let x=0;x<3;x++) l.appendChild(createCell(z*9+y*3+x));
+            lb.appendChild(l); w.appendChild(lb);
         }
-        container.appendChild(wrapper);
+        con.appendChild(w);
     }
-
-    function initUltimate(container) {
-        const grid = document.createElement('div');
-        grid.id = 'board-ultimate';
-        state.board = Array(81).fill(null); 
-        for (let i = 0; i < 9; i++) {
-            const sub = document.createElement('div');
-            sub.className = 'sub-grid active-zone'; 
-            sub.id = `sub-${i}`;
-            for (let j = 0; j < 9; j++) sub.appendChild(createCell(i*9 + j));
-            grid.appendChild(sub);
+    function initUltimate(con) {
+        const g = document.createElement('div'); g.id = 'board-ultimate'; state.board = Array(81).fill(null);
+        for(let i=0;i<9;i++) {
+            const s = document.createElement('div'); s.className = 'sub-grid active-zone'; s.id = `sub-${i}`;
+            for(let j=0;j<9;j++) s.appendChild(createCell(i*9+j)); g.appendChild(s);
         }
-        container.appendChild(grid);
+        con.appendChild(g);
     }
 
     /* --- INPUT HANDLING --- */
     function handleInput(idx) {
         if (!state.active) return;
         if (state.mode !== 'local' && state.turn !== state.myPlayer) return;
-
         if (!isValidMove(idx)) return;
 
         makeMove(idx, state.turn);
-        
-        if ((state.mode === 'host' || state.mode === 'join') && state.conn) {
-            state.conn.send({ type: 'move', idx: idx });
-        }
-        if (state.mode === 'bot' && state.active) {
-            setTimeout(botMove, 500); 
-        }
+        if ((state.mode === 'host' || state.mode === 'join') && state.conn) state.conn.send({ type: 'move', idx: idx });
+        if (state.mode === 'bot' && state.active) setTimeout(botMove, 500);
     }
 
     function isValidMove(idx) {
         if (state.board[idx] !== null) return false;
         if (state.variant === 'ultimate') {
-            const subGridIdx = Math.floor(idx / 9);
-            if (state.activeSubGrid !== -1 && subGridIdx !== state.activeSubGrid) return false;
-            if (state.ultimateMacro[subGridIdx] !== null) return false;
+            const s = Math.floor(idx/9);
+            if (state.activeSubGrid !== -1 && s !== state.activeSubGrid) return false;
+            if (state.ultimateMacro[s] !== null) return false;
         }
         return true;
     }
 
-    function makeMove(idx, player) {
-        state.board[idx] = player;
-        renderCell(idx, player);
+    function makeMove(idx, p) {
+        state.board[idx] = p; renderCell(idx, p);
+        let winLine = null;
+        if (state.variant === 'normal') winLine = checkWinNormal(state.board, p);
+        else if (state.variant === '3d') winLine = checkWin3D(state.board, p);
+        else if (state.variant === 'ultimate') winLine = handleUltimateMove(idx, p); // Ult returns true/false only here
 
-        let won = false;
-        if (state.variant === 'normal') won = checkWinNormal(state.board, player);
-        else if (state.variant === '3d') won = checkWin3D(state.board, player);
-        else if (state.variant === 'ultimate') won = handleUltimateMove(idx, player);
-
-        if (won) {
-            endGame(player);
-        } else if (isDraw()) {
-            endGame('draw');
-        } else {
-            state.turn = state.turn === 'X' ? 'O' : 'X';
-            updateTurnDisplay();
+        if (winLine) endGame(p, winLine);
+        else if (isDraw()) endGame('draw');
+        else {
+            state.turn = state.turn === 'X' ? 'O' : 'X'; updateTurnDisplay();
             if (state.variant === 'ultimate') highlightActiveSubGrids();
         }
     }
 
-    function renderCell(idx, player) {
+    function renderCell(idx, p) {
         let el;
-        if(state.variant === 'normal') el = document.querySelector(`#board-normal .cell[data-idx='${idx}']`);
-        else if(state.variant === '3d') el = document.querySelector(`.layer-3d .cell[data-idx='${idx}']`);
-        else if(state.variant === 'ultimate') el = document.querySelector(`#board-ultimate .cell[data-idx='${idx}']`);
-        if (el) {
-            el.innerHTML = `<span>${player}</span>`; 
-            el.classList.add(player.toLowerCase(), 'taken');
-        }
+        if(state.variant==='normal') el=document.querySelector(`#board-normal .cell[data-idx='${idx}']`);
+        else if(state.variant==='3d') el=document.querySelector(`.layer-3d .cell[data-idx='${idx}']`);
+        else el=document.querySelector(`#board-ultimate .cell[data-idx='${idx}']`);
+        if(el){ el.innerHTML = `<span>${p}</span>`; el.classList.add(p.toLowerCase(), 'taken'); }
     }
 
     function updateTurnDisplay() {
-        const el = document.getElementById('turn-display');
-        const pName = state.turn === 'X' ? state.p1Name : state.p2Name;
+        const el = document.getElementById('turn-display'); const pName = state.turn === 'X' ? state.p1Name : state.p2Name;
+        if (state.mode === 'local') { el.innerText = `${pName}'s Turn (${state.turn})`; el.style.color = state.turn === 'X' ? "var(--text)" : "var(--primary)"; }
+        else { el.innerText = state.turn === state.myPlayer ? "Your Turn" : `${pName}'s Turn`; el.style.color = state.turn === state.myPlayer ? "var(--primary)" : "#999"; }
+    }
+
+    /* --- END GAME & ANIMATIONS --- */
+    function endGame(res, winLine) {
+        state.active = false;
+        const display = document.getElementById('turn-display');
         
-        if (state.mode === 'local') {
-            el.innerText = `${pName}'s Turn (${state.turn})`;
-            el.style.color = state.turn === 'X' ? "var(--text)" : "var(--primary)";
+        if (res === 'draw') {
+            display.innerText = "It's a Draw!"; state.scores.draw++;
+            updateScoreboard(); document.getElementById('restart-btn').style.display = 'inline-block';
         } else {
-            if (state.turn === state.myPlayer) {
-                el.innerText = "Your Turn";
-                el.style.color = "var(--primary)";
+            const wName = res === 'X' ? state.p1Name : state.p2Name;
+            display.innerText = `${wName} Wins!`;
+            display.style.color = res === 'X' ? "var(--text)" : "var(--primary)";
+            if (res === 'X') state.scores.p1++; else state.scores.p2++;
+            updateScoreboard();
+
+            // ANIMATION SEQUENCE
+            if (state.animationsEnabled && state.variant === '3d' && winLine) {
+                perform3DWin(winLine, () => showWinEffects(winLine));
+            } else if (state.animationsEnabled && winLine) {
+                showWinEffects(winLine);
             } else {
-                el.innerText = `${pName}'s Turn`;
-                el.style.color = "#999";
+                // No anims or Ultimate (too complex to line draw easily)
+                if(winLine && Array.isArray(winLine)) highlightCells(winLine);
+                fireConfetti();
+                document.getElementById('restart-btn').style.display = 'inline-block';
             }
         }
     }
 
-    function endGame(result) {
-        state.active = false;
-        const display = document.getElementById('turn-display');
-        if (result === 'draw') {
-            display.innerText = "It's a Draw!";
-            state.scores.draw++;
-        } else {
-            const winnerName = result === 'X' ? state.p1Name : state.p2Name;
-            display.innerText = `${winnerName} Wins!`;
-            display.style.color = result === 'X' ? "var(--text)" : "var(--primary)";
-            if (result === 'X') state.scores.p1++; else state.scores.p2++;
-            fireConfetti();
-        }
-        updateScoreboard();
-        document.getElementById('restart-btn').style.display = 'inline-block';
-    }
-
-    function fireConfetti() {
-        if(window.confetti) confetti({ 
-            particleCount: 150, 
-            spread: 70, 
-            origin: { y: 0.6 }, 
-            colors: ['#DD8566', '#474D4D', '#DBDCDF'] 
+    function highlightCells(indices) {
+        indices.forEach(idx => {
+            let el;
+            if(state.variant==='normal') el=document.querySelector(`#board-normal .cell[data-idx='${idx}']`);
+            else if(state.variant==='3d') el=document.querySelector(`.layer-3d .cell[data-idx='${idx}']`);
+            if(el) el.classList.add('highlight');
         });
     }
 
-    /* --- LOGIC HELPERS --- */
-    const WINS_3X3 = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-    function checkWinNormal(b, p) { return WINS_3X3.some(c => c.every(i => b[i] === p)); }
-    function checkWin3D(b, p) {
-        const checkLine = (sx,sy,sz, dx,dy,dz) => {
-            for(let i=0; i<3; i++) if (b[(sz+i*dz)*9 + (sy+i*dy)*3 + (sx+i*dx)] !== p) return false;
-            return true;
-        };
-        for(let z=0; z<3; z++) for(let y=0; y<3; y++) if(checkLine(0,y,z, 1,0,0)) return true;
-        for(let z=0; z<3; z++) for(let x=0; x<3; x++) if(checkLine(x,0,z, 0,1,0)) return true;
-        for(let y=0; y<3; y++) for(let x=0; x<3; x++) if(checkLine(x,y,0, 0,0,1)) return true;
-        for(let z=0; z<3; z++) { if(checkLine(0,0,z, 1,1,0)) return true; if(checkLine(2,0,z, -1,1,0)) return true; }
-        for(let y=0; y<3; y++) { if(checkLine(0,y,0, 1,0,1)) return true; if(checkLine(2,y,0, -1,0,1)) return true; }
-        for(let x=0; x<3; x++) { if(checkLine(x,0,0, 0,1,1)) return true; if(checkLine(x,2,0, 0,-1,1)) return true; }
-        if(checkLine(0,0,0, 1,1,1)) return true; if(checkLine(2,0,0, -1,1,1)) return true;
-        if(checkLine(0,2,0, 1,-1,1)) return true; if(checkLine(2,2,0, -1,-1,1)) return true;
-        return false;
+    function showWinEffects(line) {
+        highlightCells(line);
+        drawSVGLine(line);
+        fireConfetti();
+        setTimeout(() => { document.getElementById('restart-btn').style.display = 'inline-block'; }, 1000);
     }
 
+    // --- 3D STACK ANIMATION LOGIC ---
+    function perform3DWin(line, callback) {
+        const board3d = document.getElementById('board-3d');
+        const levels = [document.getElementById('lvl-0'), document.getElementById('lvl-1'), document.getElementById('lvl-2')];
+        
+        // 1. Add class to change container layout
+        board3d.classList.add('stacked');
+
+        // 2. Animate levels to stack in center
+        // We use absolute positioning tricks or transforms.
+        // Let's use transforms to move them from their current Flex positions to the center stack.
+        // Simplified: Move them all to center x, and varying y.
+        
+        // Stack order: Bottom (Lvl 0) -> Top (Lvl 2)
+        // Visually: Lvl 0 at bottom of screen, Lvl 2 at top? Or "pancake stack"?
+        // "Stack the 3 on top of each other" usually implies Z-axis stacking (pancakes).
+        
+        levels.forEach((el, i) => {
+            el.style.position = 'absolute';
+            el.style.left = '50%';
+            el.style.top = '50%';
+            // Stack them vertically with slight offset to see depth
+            // i=0 (bottom level), i=2 (top level)
+            // TranslateZ moves them towards camera.
+            // TranslateY tilts them.
+            el.style.transform = `translate(-50%, -50%) translateZ(${i * 60}px) translateY(${-i * 30}px)`;
+            el.style.zIndex = i + 10;
+        });
+
+        // Wait for CSS transition (1.5s) then callback
+        setTimeout(callback, 1600);
+    }
+
+    function drawSVGLine(indices) {
+        // Only works for Normal and 3D (flattened or stacked)
+        // We need to calculate start and end points relative to game-wrapper
+        if (!indices || indices.length === 0) return;
+        
+        const startIdx = indices[0];
+        const endIdx = indices[indices.length - 1];
+
+        // Helper to get center of a cell
+        const getCenter = (idx) => {
+            let el;
+            if(state.variant==='normal') el=document.querySelector(`#board-normal .cell[data-idx='${idx}']`);
+            else if(state.variant==='3d') el=document.querySelector(`.layer-3d .cell[data-idx='${idx}']`);
+            
+            if(!el) return {x:0, y:0};
+            const rect = el.getBoundingClientRect();
+            const wrapperRect = document.getElementById('game-wrapper').getBoundingClientRect();
+            return {
+                x: rect.left + rect.width/2 - wrapperRect.left,
+                y: rect.top + rect.height/2 - wrapperRect.top
+            };
+        };
+
+        const start = getCenter(startIdx);
+        const end = getCenter(endIdx);
+
+        const svg = document.getElementById('win-line-svg');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${start.x} ${start.y} L ${end.x} ${end.y}`);
+        path.setAttribute('class', 'win-path');
+        svg.appendChild(path);
+    }
+
+    function fireConfetti() { if(window.confetti) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#DD8566', '#474D4D'] }); }
+
+    /* --- LOGIC HELPERS --- */
+    const WINS_3X3 = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    function checkWinNormal(b, p) { 
+        for(let c of WINS_3X3) if(c.every(i => b[i] === p)) return c;
+        return null; 
+    }
+    function checkWin3D(b, p) {
+        const checkLine = (sx,sy,sz, dx,dy,dz) => {
+            let line = [];
+            for(let i=0; i<3; i++) {
+                let idx = (sz+i*dz)*9 + (sy+i*dy)*3 + (sx+i*dx);
+                if (b[idx] !== p) return null;
+                line.push(idx);
+            }
+            return line;
+        };
+        let l;
+        for(let z=0; z<3; z++) for(let y=0; y<3; y++) if(l=checkLine(0,y,z, 1,0,0)) return l;
+        for(let z=0; z<3; z++) for(let x=0; x<3; x++) if(l=checkLine(x,0,z, 0,1,0)) return l;
+        for(let y=0; y<3; y++) for(let x=0; x<3; x++) if(l=checkLine(x,y,0, 0,0,1)) return l;
+        for(let z=0; z<3; z++) { if(l=checkLine(0,0,z, 1,1,0)) return l; if(l=checkLine(2,0,z, -1,1,0)) return l; }
+        for(let y=0; y<3; y++) { if(l=checkLine(0,y,0, 1,0,1)) return l; if(l=checkLine(2,y,0, -1,0,1)) return l; }
+        for(let x=0; x<3; x++) { if(l=checkLine(x,0,0, 0,1,1)) return l; if(l=checkLine(x,2,0, 0,-1,1)) return l; }
+        if(l=checkLine(0,0,0, 1,1,1)) return l; if(l=checkLine(2,0,0, -1,1,1)) return l;
+        if(l=checkLine(0,2,0, 1,-1,1)) return l; if(l=checkLine(2,2,0, -1,-1,1)) return l;
+        return null;
+    }
     function handleUltimateMove(idx, p) {
-        const subIdx = Math.floor(idx/9);
-        const subArr = state.board.slice(subIdx*9, subIdx*9+9);
-        if (state.ultimateMacro[subIdx] === null && checkWinNormal(subArr, p)) {
-            state.ultimateMacro[subIdx] = p;
-            document.getElementById(`sub-${subIdx}`).classList.add(p==='X'?'won-x':'won-o');
+        const s = Math.floor(idx/9);
+        const subArr = state.board.slice(s*9, s*9+9);
+        if (state.ultimateMacro[s] === null && checkWinNormal(subArr, p)) {
+            state.ultimateMacro[s] = p; document.getElementById(`sub-${s}`).classList.add(p==='X'?'won-x':'won-o');
         }
         const rel = idx % 9;
-        if (state.ultimateMacro[rel] !== null || isSubGridFull(rel)) state.activeSubGrid = -1;
-        else state.activeSubGrid = rel;
+        state.activeSubGrid = (state.ultimateMacro[rel] !== null || isSubGridFull(rel)) ? -1 : rel;
         highlightActiveSubGrids();
         return checkWinNormal(state.ultimateMacro, p);
     }
-
     function highlightActiveSubGrids() {
-        for(let i=0; i<9; i++) {
-            const sub = document.getElementById(`sub-${i}`);
-            sub.classList.remove('active-zone');
-            if(state.ultimateMacro[i]) continue;
-            if (state.activeSubGrid === -1 || state.activeSubGrid === i) sub.classList.add('active-zone');
+        for(let i=0;i<9;i++) {
+            const el = document.getElementById(`sub-${i}`); el.classList.remove('active-zone');
+            if(!state.ultimateMacro[i] && (state.activeSubGrid===-1 || state.activeSubGrid===i)) el.classList.add('active-zone');
         }
     }
-    function isSubGridFull(idx) { for(let i=0;i<9;i++) if(state.board[idx*9+i]===null) return false; return true; }
+    function isSubGridFull(i) { for(let k=0;k<9;k++) if(state.board[i*9+k]===null) return false; return true; }
     function isDraw() { return state.board.every(c => c !== null); }
 
     /* --- BOT --- */
     function botMove() {
-        let moves = [];
-        for(let i=0;i<state.board.length;i++) if(isValidMove(i)) moves.push(i);
+        let moves=[]; for(let i=0;i<state.board.length;i++) if(isValidMove(i)) moves.push(i);
         if(moves.length===0) return;
-        const rand = Math.random();
         let idx = -1;
-        if (state.difficulty==='easy') idx = moves[Math.floor(Math.random()*moves.length)];
+        if(state.difficulty==='easy') idx = moves[Math.floor(Math.random()*moves.length)];
         else {
-            if (rand > (state.difficulty==='medium'?0.7:0.95)) idx = moves[Math.floor(Math.random()*moves.length)];
+            if(Math.random() > (state.difficulty==='medium'?0.7:0.95)) idx = moves[Math.floor(Math.random()*moves.length)];
             else idx = findBestMove(moves);
         }
         makeMove(idx, 'O');
@@ -698,92 +675,55 @@
         for(let m of moves) { let t=[...state.board]; t[m]='X'; if(checkWinSim(t,'X')) return m; }
         return moves[Math.floor(Math.random()*moves.length)];
     }
-    function checkWinSim(b, p) {
-        if(state.variant==='normal') return checkWinNormal(b,p);
-        if(state.variant==='3d') return checkWin3D(b,p);
-        return false;
-    }
+    function checkWinSim(b, p) { return state.variant==='normal'?checkWinNormal(b,p): (state.variant==='3d'?checkWin3D(b,p):false); }
 
     /* --- NETWORK --- */
-    function makeId(l) {
-        const c='abcdefghijklmnopqrstuvwxyz0123456789'; let r='';
-        for(let i=0;i<l;i++) r+=c.charAt(Math.floor(Math.random()*c.length)); return r;
-    }
-
+    function makeId(l) { const c='abcdefghijklmnopqrstuvwxyz0123456789'; let r=''; for(let i=0;i<l;i++) r+=c.charAt(Math.floor(Math.random()*c.length)); return r; }
     function startHostingProcess() {
-        showScreen('screen-host-waiting');
-        document.getElementById('host-selected-mode').innerText = state.variant.toUpperCase();
-        const customId = makeId(9);
-        state.peer = new Peer(customId);
-        
+        showScreen('screen-host-waiting'); document.getElementById('host-selected-mode').innerText = state.variant.toUpperCase();
+        state.hostId = makeId(9);
+        state.peer = new Peer(state.hostId);
         state.peer.on('open', (id) => { 
             document.getElementById('host-code-display').innerText = id; 
         });
         state.peer.on('error', () => { state.peer.destroy(); startHostingProcess(); });
-
         state.peer.on('connection', (c) => {
-            state.conn = c;
-            document.getElementById('host-status').innerText = "Connecting...";
-            setupConn();
-
+            state.conn = c; document.getElementById('host-status').innerText = "Connecting..."; setupConn();
             c.on('open', () => {
-                c.send({ 
-                    type: 'start', 
-                    variant: state.variant, 
-                    hostName: state.p1Name 
-                });
-                state.myPlayer = 'X';
-                initGame(state.variant);
+                c.send({ type: 'start', variant: state.variant, hostName: state.p1Name });
+                state.myPlayer = 'X'; initGame(state.variant);
             });
         });
     }
-
     function joinGame() {
-        state.mode = 'join';
-        const name = document.getElementById('mp-name').value || "Joiner";
+        state.mode = 'join'; const name = document.getElementById('mp-name').value || "Joiner";
         const code = document.getElementById('join-code').value.trim().toLowerCase();
-        if (!code || code.length !== 9) return alert("Enter 9-char code");
-        
-        state.p2Name = name;
-        document.getElementById('btn-join').innerText = "Connecting...";
-        
+        if (!code) return alert("Enter Code");
+        state.p2Name = name; document.getElementById('btn-join').innerText = "Connecting...";
         state.peer = new Peer(); 
-        state.peer.on('open', () => {
-            state.conn = state.peer.connect(code);
-            setupConn();
-        });
+        state.peer.on('open', () => { state.conn = state.peer.connect(code); setupConn(); });
         state.peer.on('error', () => { alert("Connection Failed"); location.reload(); });
     }
-
     function setupConn() {
-        state.conn.on('data', (data) => {
-            if (data.type === 'start') {
-                state.variant = data.variant;
-                state.p1Name = data.hostName; 
-                state.p2Name = document.getElementById('mp-name').value;
-                state.conn.send({ type: 'name-ack', name: state.p2Name });
-                state.myPlayer = 'O'; 
-                initGame(state.variant);
-            }
-            if (data.type === 'name-ack') {
-                state.p2Name = data.name;
-                updateScoreboard();
-                updateTurnDisplay();
-            }
-            if (data.type === 'move') {
-                makeMove(data.idx, state.myPlayer === 'X' ? 'O' : 'X');
-            }
-            if (data.type === 'restart') initGame(state.variant);
+        state.conn.on('data', (d) => {
+            if(d.type==='start'){ state.variant=d.variant; state.p1Name=d.hostName; state.p2Name=document.getElementById('mp-name').value; state.conn.send({type:'name-ack',name:state.p2Name}); state.myPlayer='O'; initGame(state.variant); }
+            if(d.type==='name-ack'){ state.p2Name=d.name; updateScoreboard(); updateTurnDisplay(); }
+            if(d.type==='move') makeMove(d.idx, state.myPlayer==='X'?'O':'X');
+            if(d.type==='restart') initGame(state.variant);
         });
-        
         state.conn.on('close', () => alert("Opponent Disconnected"));
     }
+    function triggerRestart() { initGame(state.variant); if((state.mode==='host'||state.mode==='join')&&state.conn) state.conn.send({type:'restart'}); }
 
-    function triggerRestart() {
-        initGame(state.variant);
-        if ((state.mode === 'host' || state.mode === 'join') && state.conn) {
-            state.conn.send({ type: 'restart' });
-        }
+    /* --- SHARING --- */
+    function copyJoinLink() {
+        const id = document.getElementById('host-code-display').innerText;
+        if(id === 'Generating...') return;
+        const link = window.location.origin + window.location.pathname + '?join=' + id;
+        navigator.clipboard.writeText(link).then(() => {
+            const t = document.getElementById('toast'); t.className = "show";
+            setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+        });
     }
 </script>
 </body>
