@@ -162,13 +162,12 @@
         }
         #board-normal .cell { font-size: 3rem; }
 
-        /* --- 3D Board Redesign --- */
+        /* --- 3D Board --- */
         #board-3d {
             display: flex; 
-            flex-direction: column; /* Stack naturally in flow */
+            flex-direction: column; 
             gap: 40px; 
             padding: 40px;
-            /* Improved Perspective */
             transform: perspective(1200px) rotateX(35deg) scale(0.9);
             transform-style: preserve-3d;
             transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -181,76 +180,85 @@
         }
 
         .layer-label {
-            position: absolute;
-            right: -80px;
-            top: 50%;
-            transform: translateY(-50%) rotateX(-35deg); /* Counter-rotate text */
-            color: #999;
-            font-size: 0.9rem;
-            font-weight: 500;
+            position: absolute; right: -80px; top: 50%;
+            transform: translateY(-50%) rotateX(-35deg);
+            color: #999; font-size: 0.9rem; font-weight: 500;
             transition: opacity 0.5s;
         }
 
         .layer-3d {
-            display: grid; 
-            grid-template-columns: repeat(3, 60px); 
-            grid-template-rows: repeat(3, 60px);
-            gap: 6px; 
-            padding: 10px;
-            
-            /* Glassmorphism Look */
+            display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(3, 60px);
+            gap: 6px; padding: 10px;
             background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(221, 133, 102, 0.3); /* Subtle Terra Cotta border */
+            border: 1px solid rgba(221, 133, 102, 0.3);
             border-radius: 12px;
-            box-shadow: 
-                0 10px 20px rgba(0,0,0,0.05),
-                0 2px 5px rgba(0,0,0,0.05);
-            
-            /* Thickness Illusion */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05), 0 2px 5px rgba(0,0,0,0.05);
             transform: translateZ(0); 
             transition: all 1.2s;
         }
         
         #board-3d .cell { 
-            font-size: 2rem; 
-            width: 60px; height: 60px; 
+            font-size: 2rem; width: 60px; height: 60px; 
             background: rgba(245, 245, 245, 0.6); 
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
         }
         #board-3d .cell:hover { background: #fff; transform: translateZ(5px); box-shadow: 0 5px 10px rgba(0,0,0,0.1); }
 
-        /* 3D Stack Animation State */
-        #board-3d.stacked {
-            transform: perspective(1200px) rotateX(10deg) scale(1); /* Flatten angle slightly to see stack */
-            gap: 0; /* Remove gap */
-        }
-
-        /* When stacked, we want them to physically overlap.
-           Since we used flex-direction: column, we need to pull them up.
-        */
-        #board-3d.stacked .level-container {
-            margin-top: -190px; /* Overlap them */
-            opacity: 0.8; /* See through */
-        }
-        #board-3d.stacked .level-container:first-child { margin-top: 0; opacity: 1; } /* Bottom one stays */
-        
-        #board-3d.stacked .layer-3d {
-            background: rgba(255, 255, 255, 0.6);
-            box-shadow: none;
-            border-color: var(--primary);
-        }
+        #board-3d.stacked { transform: perspective(1200px) rotateX(10deg) scale(1); gap: 0; }
+        #board-3d.stacked .level-container { margin-top: -190px; opacity: 0.8; }
+        #board-3d.stacked .level-container:first-child { margin-top: 0; opacity: 1; }
+        #board-3d.stacked .layer-3d { background: rgba(255, 255, 255, 0.6); box-shadow: none; border-color: var(--primary); }
         #board-3d.stacked .layer-label { opacity: 0; }
 
 
-        /* Ultimate */
+        /* --- Ultimate Board (With Overlay Logic) --- */
         #board-ultimate {
             display: grid; grid-template-columns: repeat(3, auto); gap: 8px;
             background: var(--text); padding: 8px; border-radius: 12px; margin: 0 auto;
         }
-        .sub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--outline); padding: 2px; }
+
+        .sub-grid { 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; 
+            background: var(--outline); padding: 2px; 
+            position: relative; /* Essential for overlay */
+        }
+        
+        /* Highlight active grid */
         .sub-grid.active-zone { background: #FFDBCF; }
-        .sub-grid.won-x { background: #dcdcdc; opacity: 0.9; }
-        .sub-grid.won-o { background: #EBCbc1; opacity: 0.9; }
+        
+        /* THE GIANT OVERLAY LOGIC */
+        .sub-grid.won-x::after, .sub-grid.won-o::after {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 100px;
+            font-weight: 900;
+            z-index: 10;
+            line-height: 1;
+            pointer-events: none; /* Let clicks pass (logic handles invalid moves) */
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Overlay for X */
+        .sub-grid.won-x::after {
+            content: "X";
+            color: var(--text); /* Dark Grey */
+            opacity: 0.9;
+        }
+
+        /* Overlay for O */
+        .sub-grid.won-o::after {
+            content: "O";
+            color: var(--primary); /* Terra Cotta */
+            opacity: 0.9;
+        }
+
+        /* Fade out the small cells when won */
+        .sub-grid.won-x .cell, .sub-grid.won-o .cell {
+            opacity: 0.2;
+        }
+
         #board-ultimate .cell { width: 35px; height: 35px; font-size: 1.2rem; background: var(--bg); }
 
         .back-link { background: transparent; color: #999; border: none; box-shadow: none; text-decoration: underline; margin-top: 20px;}
@@ -550,12 +558,11 @@
     }
 
     function highlightCells(indices) {
-        // Handle Ultimate (indices refer to subgrids) vs Normal/3D (indices refer to cells)
         indices.forEach(idx => {
             let el;
             if(state.variant==='normal') el=document.querySelector(`#board-normal .cell[data-idx='${idx}']`);
             else if(state.variant==='3d') el=document.querySelector(`.layer-3d .cell[data-idx='${idx}']`);
-            else if(state.variant==='ultimate') el=document.getElementById(`sub-${idx}`); // Highlight the winning sub-grids
+            else if(state.variant==='ultimate') el=document.getElementById(`sub-${idx}`); 
             
             if(el) {
                 if(state.variant === 'ultimate') el.style.boxShadow = "inset 0 0 0 4px var(--primary)";
@@ -573,9 +580,8 @@
 
     function perform3DWin(line, callback) {
         const board3d = document.getElementById('board-3d');
-        // Add class to trigger the collapse via CSS
         board3d.classList.add('stacked');
-        setTimeout(callback, 1200); // Wait for transition
+        setTimeout(callback, 1200); 
     }
 
     function drawSVGLine(indices) {
@@ -583,12 +589,11 @@
         const startIdx = indices[0];
         const endIdx = indices[indices.length - 1];
 
-        // Helper to get center
         const getCenter = (idx) => {
             let el;
             if(state.variant==='normal') el=document.querySelector(`#board-normal .cell[data-idx='${idx}']`);
             else if(state.variant==='3d') el=document.querySelector(`.layer-3d .cell[data-idx='${idx}']`);
-            else if(state.variant==='ultimate') el=document.getElementById(`sub-${idx}`); // Get center of the sub-grid
+            else if(state.variant==='ultimate') el=document.getElementById(`sub-${idx}`);
             
             if(!el) return {x:0, y:0};
             const rect = el.getBoundingClientRect();
@@ -618,7 +623,6 @@
         return null; 
     }
     function checkWin3D(b, p) {
-        // Return winning line indices
         const checkLine = (sx,sy,sz, dx,dy,dz) => {
             let line = [];
             for(let i=0; i<3; i++) {
@@ -629,15 +633,12 @@
             return line;
         };
         let l;
-        // Orthogonal
         for(let z=0; z<3; z++) for(let y=0; y<3; y++) if(l=checkLine(0,y,z, 1,0,0)) return l;
         for(let z=0; z<3; z++) for(let x=0; x<3; x++) if(l=checkLine(x,0,z, 0,1,0)) return l;
         for(let y=0; y<3; y++) for(let x=0; x<3; x++) if(l=checkLine(x,y,0, 0,0,1)) return l;
-        // 2D Diags
         for(let z=0; z<3; z++) { if(l=checkLine(0,0,z, 1,1,0)) return l; if(l=checkLine(2,0,z, -1,1,0)) return l; }
         for(let y=0; y<3; y++) { if(l=checkLine(0,y,0, 1,0,1)) return l; if(l=checkLine(2,y,0, -1,0,1)) return l; }
         for(let x=0; x<3; x++) { if(l=checkLine(x,0,0, 0,1,1)) return l; if(l=checkLine(x,2,0, 0,-1,1)) return l; }
-        // 3D Diags
         if(l=checkLine(0,0,0, 1,1,1)) return l; if(l=checkLine(2,0,0, -1,1,1)) return l;
         if(l=checkLine(0,2,0, 1,-1,1)) return l; if(l=checkLine(2,2,0, -1,-1,1)) return l;
         return null;
@@ -645,8 +646,11 @@
     function handleUltimateMove(idx, p) {
         const s = Math.floor(idx/9);
         const subArr = state.board.slice(s*9, s*9+9);
+        // Only mark if not already won
         if (state.ultimateMacro[s] === null && checkWinNormal(subArr, p)) {
-            state.ultimateMacro[s] = p; document.getElementById(`sub-${s}`).classList.add(p==='X'?'won-x':'won-o');
+            state.ultimateMacro[s] = p; 
+            // Add class for overlay logic
+            document.getElementById(`sub-${s}`).classList.add(p==='X'?'won-x':'won-o');
         }
         const rel = idx % 9;
         state.activeSubGrid = (state.ultimateMacro[rel] !== null || isSubGridFull(rel)) ? -1 : rel;
