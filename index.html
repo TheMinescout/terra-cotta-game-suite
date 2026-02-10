@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#DD8566">
     <title>Master Tic-Tac-Toe</title>
     
-    <link rel="icon" type="image/png" href="favicon.jpeg">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><circle cx=%2232%22 cy=%2232%22 r=%2224%22 stroke=%22%23474D4D%22 stroke-width=%228%22 fill=%22none%22/><path d=%22M16,16 L48,48 M48,16 L16,48%22 stroke=%22%23DD8566%22 stroke-width=%228%22 stroke-linecap=%22round%22/></svg>">
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -335,7 +335,9 @@
         board: [], turn: 'X', myPlayer: 'X', active: false,
         ultimateMacro: [], activeSubGrid: -1,
         peer: null, conn: null, hostId: null,
-        animationsEnabled: true
+        animationsEnabled: true,
+        nextStarter: 'X', // Tracks who starts the NEXT game
+        currentStarter: 'X' // Tracks who started THIS game
     };
 
     /* --- INITIALIZATION --- */
@@ -386,7 +388,13 @@
     /* --- GAME INIT --- */
     function initGame(variant) {
         showScreen('screen-game');
-        state.active = true; state.turn = 'X'; state.board = [];
+        state.active = true;
+        
+        // Use the tracked 'nextStarter' for this round
+        state.turn = state.nextStarter;
+        state.currentStarter = state.nextStarter;
+
+        state.board = [];
         state.ultimateMacro = Array(9).fill(null); state.activeSubGrid = -1;
         
         document.getElementById('win-line-svg').innerHTML = '';
@@ -403,6 +411,11 @@
         if (variant === 'normal') initNormal(container);
         else if (variant === '3d') init3D(container);
         else if (variant === 'ultimate') initUltimate(container);
+
+        // Check if Bot needs to move first
+        if (state.mode === 'bot' && state.turn === 'O') {
+            setTimeout(botMove, 800);
+        }
     }
 
     function updateScoreboard() {
@@ -496,14 +509,22 @@
         state.active = false;
         const display = document.getElementById('turn-display');
         
+        // --- NEXT GAME STARTER LOGIC ---
         if (res === 'draw') {
             display.innerText = "It's a Draw!"; state.scores.draw++;
-            updateScoreboard(); document.getElementById('restart-btn').style.display = 'inline-block';
+            // Toggle based on who started THIS game
+            state.nextStarter = state.currentStarter === 'X' ? 'O' : 'X';
+            updateScoreboard(); 
+            document.getElementById('restart-btn').style.display = 'inline-block';
         } else {
             const wName = res === 'X' ? state.p1Name : state.p2Name;
             display.innerText = `${wName} Wins!`;
             display.style.color = res === 'X' ? "var(--text)" : "var(--primary)";
             if (res === 'X') state.scores.p1++; else state.scores.p2++;
+            
+            // Loser goes first next game
+            state.nextStarter = res === 'X' ? 'O' : 'X';
+
             updateScoreboard();
 
             if (state.animationsEnabled && state.variant === '3d' && winLine) {
@@ -648,7 +669,10 @@
     function startHostingProcess() {
         showScreen('screen-host-waiting'); document.getElementById('host-selected-mode').innerText = state.variant.toUpperCase();
         state.hostId = makeId(9);
-        state.peer = new Peer(state.hostId);
+        const peerConfig = {
+            config: { 'iceServers': [ { url: 'stun:stun1.l.google.com:19302' }, { url: 'stun:stun2.l.google.com:19302' } ] }
+        };
+        state.peer = new Peer(state.hostId, peerConfig);
         state.peer.on('open', (id) => { document.getElementById('host-code-display').innerText = id; });
         state.peer.on('error', () => { state.peer.destroy(); startHostingProcess(); });
         state.peer.on('connection', (c) => {
@@ -664,7 +688,11 @@
         const code = document.getElementById('join-code').value.trim().toLowerCase();
         if (!code) return alert("Enter Code");
         state.p2Name = name; document.getElementById('btn-join').innerText = "Connecting...";
-        state.peer = new Peer(); 
+        
+        const peerConfig = {
+            config: { 'iceServers': [ { url: 'stun:stun1.l.google.com:19302' }, { url: 'stun:stun2.l.google.com:19302' } ] }
+        };
+        state.peer = new Peer(null, peerConfig); 
         state.peer.on('open', () => { state.conn = state.peer.connect(code); setupConn(); });
         state.peer.on('error', () => { alert("Connection Failed"); location.reload(); });
     }
