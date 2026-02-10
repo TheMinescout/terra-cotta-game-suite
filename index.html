@@ -483,51 +483,333 @@
         }
     };
 
-    // --- 4. PACMAN LITE ---
-    const PacGame = {
-        canvas: document.getElementById('pac-canvas'), ctx: document.getElementById('pac-canvas').getContext('2d'),
-        grid: 20, pac: {x: 1, y: 1}, ghosts: [{x:13, y:13, color:'#474D4D'}, {x:13, y:1, color:'#999'}],
-        map: [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,2,2,2,2,2,2,1,2,2,2,2,2,2,1],[1,2,1,1,1,2,2,1,2,2,1,1,1,2,1],[1,2,1,1,1,2,2,2,2,2,1,1,1,2,1],[1,2,2,2,2,2,1,1,1,2,2,2,2,2,1],[1,2,1,1,1,2,2,2,2,2,1,1,1,2,1],[1,2,2,2,2,2,2,1,2,2,2,2,2,2,1],[1,2,1,1,1,2,2,2,2,2,1,1,1,2,1],[1,2,2,2,2,2,2,1,2,2,2,2,2,2,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],
-        score: 0, running: false, interval: null,
-        start: function() {
-            this.pac = {x: 1, y: 1}; this.score = 0; this.running = true;
-            for(let y=0; y<10; y++) for(let x=0; x<15; x++) if(this.map[y][x]===0) this.map[y][x]=2;
-            if(this.interval) clearInterval(this.interval); this.interval = setInterval(() => this.update(), 200);
-            document.addEventListener('keydown', (e) => {
-                let nx = this.pac.x; let ny = this.pac.y;
-                if(e.key === 'ArrowUp') ny--; if(e.key === 'ArrowDown') ny++; if(e.key === 'ArrowLeft') nx--; if(e.key === 'ArrowRight') nx++;
-                if(this.map[ny] && this.map[ny][nx] !== 1) { this.pac.x = nx; this.pac.y = ny; }
-            });
-            let xD=null, yD=null;
-            this.canvas.addEventListener('touchstart', (e)=>{xD=e.touches[0].clientX;yD=e.touches[0].clientY;});
-            this.canvas.addEventListener('touchmove', (e)=>{
-                if(!xD||!yD)return;
-                let xDiff = xD-e.touches[0].clientX; let yDiff = yD-e.touches[0].clientY;
-                let nx=this.pac.x; let ny=this.pac.y;
-                if(Math.abs(xDiff)>Math.abs(yDiff)) { if(xDiff>0)nx--; else nx++; } else { if(yDiff>0)ny--; else ny++; }
-                if(this.map[ny] && this.map[ny][nx] !== 1) { this.pac.x = nx; this.pac.y = ny; }
-                xD=null; yD=null; e.preventDefault();
-            });
-        },
-        stop: function() { this.running = false; clearInterval(this.interval); },
-        update: function() {
-            if(!this.running) return;
-            this.ctx.clearRect(0,0,300,300);
-            for(let y=0; y<10; y++) for(let x=0; x<15; x++) {
-                if(this.map[y][x] === 1) { this.ctx.fillStyle = '#474D4D'; this.ctx.fillRect(x*20, y*20, 20, 20); }
-                else if(this.map[y][x] === 2) { this.ctx.fillStyle = '#ccc'; this.ctx.beginPath(); this.ctx.arc(x*20+10, y*20+10, 3, 0, Math.PI*2); this.ctx.fill(); }
+    // ===== PAC-MAN LITE (UPGRADED) =====
+const PacGame = {
+    canvas: document.getElementById('pac-canvas'),
+    ctx: document.getElementById('pac-canvas').getContext('2d'),
+    grid: 16, // Adjusted grid size to fit standard canvas better if needed
+    
+    // Game State
+    pac: {x: 14, y: 23},
+    dir: {x: 0, y: 0},
+    nextDir: {x: 0, y: 0}, // For buffered input
+    ghosts: [],
+    dots: [],
+    score: 0,
+    running: false,
+    interval: null,
+    mouthOpen: true, // For animation
+    
+    // 1 = Wall, 0 = Dot, 2 = Empty/Eaten
+    map: [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+        [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+        [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+        [1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1],
+        [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
+        [1,1,1,1,1,1,0,1,1,1,1,1,2,1,1,2,1,1,1,1,1,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,1,1,1,1,1,2,1,1,2,1,1,1,1,1,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,1,1,2,2,2,2,2,2,2,2,2,2,1,1,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,1,1,2,1,1,1,2,2,1,1,1,2,1,1,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,1,1,2,1,2,2,2,2,2,2,1,2,1,1,0,1,1,1,1,1,1],
+        [2,2,2,2,2,2,0,2,2,2,1,2,2,2,2,2,2,1,2,2,2,0,2,2,2,2,2,2], // Tunnel Area
+        [1,1,1,1,1,1,0,1,1,2,1,2,2,2,2,2,2,1,2,1,1,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,1,1,2,2,2,2,2,2,2,2,2,2,1,1,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+        [1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+        [1,0,0,0,1,1,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,1,1,0,0,0,1], // Spawn Exit
+        [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+        [1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1],
+        [1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1],
+        [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+        [1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    ],
+
+    start: function() {
+        this.pac = {x: 14, y: 23};
+        this.dir = {x: 0, y: 0};
+        this.nextDir = {x: 0, y: 0}; // Input buffer
+        this.score = 0;
+        this.running = true;
+        document.getElementById('pac-score').innerText = '0';
+
+        // Re-initialize map dots based on hardcoded array
+        // (In a real engine we'd clone the array, but here we reset 2s to 0s where appropriate)
+        // For simplicity in this Lite version, we just assume 0s are dots. 
+        // If restarting, we need to reset the map state:
+        this.resetMap();
+
+        // Initialize Advanced Ghosts
+        // types: 0=Chase(Red), 1=Ambush(Pink), 2=Random(Cyan), 3=Random(Orange)
+        this.ghosts = [
+            {x: 13, y: 11, color: '#FF0000', type: 0, dir: {x:0, y:0}}, 
+            {x: 14, y: 11, color: '#FFB8FF', type: 1, dir: {x:0, y:0}}, 
+            {x: 13, y: 14, color: '#00FFFF', type: 2, dir: {x:0, y:0}}, 
+            {x: 14, y: 14, color: '#FFB852', type: 3, dir: {x:0, y:0}}
+        ];
+
+        if (this.interval) clearInterval(this.interval);
+        // Faster tick rate for smoother feel (120ms)
+        this.interval = setInterval(() => this.update(), 120);
+
+        // Bind Controls
+        document.addEventListener('keydown', this.handleInput.bind(this));
+        
+        // Touch Controls
+        let tsX = 0, tsY = 0;
+        this.canvas.addEventListener('touchstart', (e) => {
+            tsX = e.touches[0].clientX; tsY = e.touches[0].clientY;
+        }, {passive: false});
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling
+        }, {passive: false});
+        this.canvas.addEventListener('touchend', (e) => {
+            const teX = e.changedTouches[0].clientX;
+            const teY = e.changedTouches[0].clientY;
+            const dx = teX - tsX;
+            const dy = teY - tsY;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                this.nextDir = dx > 0 ? {x: 1, y: 0} : {x: -1, y: 0};
+            } else {
+                this.nextDir = dy > 0 ? {x: 0, y: 1} : {x: 0, y: -1};
             }
-            if(this.map[this.pac.y][this.pac.x] === 2) { this.map[this.pac.y][this.pac.x] = 0; this.score += 10; document.getElementById('pac-score').innerText = this.score; }
-            this.ctx.fillStyle = '#DD8566'; this.ctx.beginPath(); this.ctx.arc(this.pac.x*20+10, this.pac.y*20+10, 8, 0.2*Math.PI, 1.8*Math.PI); this.ctx.lineTo(this.pac.x*20+10, this.pac.y*20+10); this.ctx.fill();
-            this.ghosts.forEach(g => {
-                let moves = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
-                let validMoves = moves.filter(m => this.map[g.y+m.y] && this.map[g.y+m.y][g.x+m.x] !== 1);
-                if(validMoves.length > 0) { let m = validMoves[Math.floor(Math.random()*validMoves.length)]; g.x += m.x; g.y += m.y; }
-                this.ctx.fillStyle = g.color; this.ctx.fillRect(g.x*20+2, g.y*20+2, 16, 16);
-                if(g.x === this.pac.x && g.y === this.pac.y) { this.stop(); Suite.showModal("Game Over", "Score: "+this.score); }
+        });
+    },
+
+    stop: function() {
+        this.running = false;
+        clearInterval(this.interval);
+    },
+
+    resetMap: function() {
+        // Simple map reset: Find where dots used to be. 
+        // Note: For a pure reset, we'd need a "master" copy of the map array.
+        // For this lite version, we scan the map. If it's a 2 (empty), we might turn it back to 0 (dot)
+        // EXCEPT the ghost house.
+        for(let y=0; y<this.map.length; y++) {
+            for(let x=0; x<this.map[y].length; x++) {
+                // Restore dots everywhere except spawn box (approx coordinates)
+                if(this.map[y][x] === 2) {
+                    // Exclude ghost house center
+                    if (!(y >= 10 && y <= 16 && x >= 10 && x <= 17)) {
+                        this.map[y][x] = 0;
+                    }
+                }
+            }
+        }
+    },
+
+    handleInput: function(e) {
+        if (!this.running) return;
+        // Buffer the input
+        if (e.key === 'ArrowUp') this.nextDir = {x: 0, y: -1};
+        else if (e.key === 'ArrowDown') this.nextDir = {x: 0, y: 1};
+        else if (e.key === 'ArrowLeft') this.nextDir = {x: -1, y: 0};
+        else if (e.key === 'ArrowRight') this.nextDir = {x: 1, y: 0};
+    },
+
+    isValidMove: function(x, y) {
+        if (y < 0 || y >= this.map.length || x < 0 || x >= this.map[0].length) return false;
+        return this.map[y][x] !== 1; // 1 is wall
+    },
+
+    update: function() {
+        if (!this.running) return;
+
+        // 1. Try to apply Buffered Input
+        if (this.nextDir.x !== 0 || this.nextDir.y !== 0) {
+            if (this.isValidMove(this.pac.x + this.nextDir.x, this.pac.y + this.nextDir.y)) {
+                this.dir = this.nextDir;
+                this.nextDir = {x: 0, y: 0}; // Clear buffer
+            }
+        }
+
+        // 2. Move Pacman
+        let nx = this.pac.x + this.dir.x;
+        let ny = this.pac.y + this.dir.y;
+
+        // Tunnel Wrap
+        if (nx < 0) nx = this.map[0].length - 1;
+        if (nx >= this.map[0].length) nx = 0;
+
+        if (this.isValidMove(nx, ny)) {
+            this.pac.x = nx;
+            this.pac.y = ny;
+            this.mouthOpen = !this.mouthOpen; // Chomp animation toggle
+        }
+
+        // 3. Eat Dots
+        if (this.map[this.pac.y][this.pac.x] === 0) {
+            this.map[this.pac.y][this.pac.x] = 2; // Mark empty
+            this.score += 10;
+            document.getElementById('pac-score').innerText = this.score;
+            
+            // Check Win
+            let dotsLeft = false;
+            for(let r of this.map) if(r.includes(0)) dotsLeft = true;
+            if(!dotsLeft) this.gameOver(true);
+        }
+
+        // 4. Move Ghosts (AI)
+        this.ghosts.forEach(g => this.moveGhost(g));
+
+        // 5. Collision Check
+        this.ghosts.forEach(g => {
+            if (g.x === this.pac.x && g.y === this.pac.y) {
+                this.gameOver(false);
+            }
+        });
+
+        this.draw();
+    },
+
+    moveGhost: function(ghost) {
+        // Basic AI: Decide target square based on personality
+        let target = {x: this.pac.x, y: this.pac.y};
+
+        if (ghost.type === 1) { // Ambush (Pinky): Target 4 tiles ahead of Pac
+            target.x += this.dir.x * 4;
+            target.y += this.dir.y * 4;
+        } else if (ghost.type === 2 || ghost.type === 3) { // Randoms
+            if (Math.random() > 0.6) { // Occasional random target
+                target = {
+                    x: Math.floor(Math.random() * this.map[0].length),
+                    y: Math.floor(Math.random() * this.map.length)
+                };
+            }
+        }
+
+        // Get possible moves (Up, Down, Left, Right)
+        const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
+        
+        // Filter out Walls and Reverse Direction (Ghosts can't do 180s usually)
+        let validMoves = dirs.filter(d => {
+            // Prevent 180 turn: if d.x == -ghost.dir.x and d.y == -ghost.dir.y
+            if (ghost.dir.x !== 0 && d.x === -ghost.dir.x) return false;
+            if (ghost.dir.y !== 0 && d.y === -ghost.dir.y) return false;
+            
+            const nx = ghost.x + d.x;
+            const ny = ghost.y + d.y;
+            // Check bounds and walls
+            return ny >= 0 && ny < this.map.length && 
+                   nx >= 0 && nx < this.map[0].length && 
+                   this.map[ny][nx] !== 1;
+        });
+
+        // Dead end? Allow reversing
+        if (validMoves.length === 0) {
+            validMoves = dirs.filter(d => {
+                const nx = ghost.x + d.x;
+                const ny = ghost.y + d.y;
+                return ny >= 0 && ny < this.map.length && nx >= 0 && nx < this.map[0].length && this.map[ny][nx] !== 1;
             });
         }
-    };
+
+        if (validMoves.length > 0) {
+            // Sort moves by distance to Target (Manhattan distance is fine for speed)
+            validMoves.sort((a, b) => {
+                const distA = Math.abs((ghost.x + a.x) - target.x) + Math.abs((ghost.y + a.y) - target.y);
+                const distB = Math.abs((ghost.x + b.x) - target.x) + Math.abs((ghost.y + b.y) - target.y);
+                return distA - distB;
+            });
+
+            // Pick the best move (0 is closest)
+            // Add slight randomness for types 2 & 3 to prevent stacking
+            let selected = validMoves[0];
+            if (ghost.type >= 2 && validMoves.length > 1 && Math.random() < 0.3) {
+                selected = validMoves[Math.floor(Math.random() * validMoves.length)];
+            }
+
+            ghost.dir = selected;
+            ghost.x += selected.x;
+            ghost.y += selected.y;
+        }
+    },
+
+    draw: function() {
+        // Clear
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw Map
+        const cs = this.canvas.width / this.map[0].length; // Cell Size
+        
+        for(let y=0; y<this.map.length; y++) {
+            for(let x=0; x<this.map[y].length; x++) {
+                if(this.map[y][x] === 1) {
+                    // Draw Walls (Blue Lines look nicer than blocks)
+                    this.ctx.fillStyle = '#1919A6'; // Classic Blue
+                    // Draw slightly smaller rect for aesthetics
+                    this.ctx.fillRect(x*cs + 1, y*cs + 1, cs - 2, cs - 2);
+                } else if(this.map[y][x] === 0) {
+                    // Draw Dot
+                    this.ctx.fillStyle = '#FFB8AE'; // Peach
+                    this.ctx.beginPath();
+                    this.ctx.arc(x*cs + cs/2, y*cs + cs/2, 2, 0, Math.PI*2);
+                    this.ctx.fill();
+                }
+            }
+        }
+
+        // Draw Pacman
+        const px = this.pac.x * cs + cs/2;
+        const py = this.pac.y * cs + cs/2;
+        this.ctx.fillStyle = '#FFFF00';
+        this.ctx.beginPath();
+        // Calc rotation
+        let rot = 0;
+        if (this.dir.x === -1) rot = Math.PI;
+        if (this.dir.y === -1) rot = 1.5 * Math.PI;
+        if (this.dir.y === 1) rot = 0.5 * Math.PI;
+        
+        // Chomp
+        const mouthSize = this.mouthOpen ? 0.2 : 0.05;
+        this.ctx.arc(px, py, cs/2 - 1, rot + mouthSize * Math.PI, rot + (2 - mouthSize) * Math.PI);
+        this.ctx.lineTo(px, py);
+        this.ctx.fill();
+
+        // Draw Ghosts
+        this.ghosts.forEach(g => {
+            this.ctx.fillStyle = g.color;
+            const gx = g.x * cs;
+            const gy = g.y * cs;
+            
+            // Ghost Body (Round top)
+            this.ctx.beginPath();
+            this.ctx.arc(gx + cs/2, gy + cs/2 - 2, cs/2 - 2, Math.PI, 0);
+            this.ctx.lineTo(gx + cs - 2, gy + cs);
+            this.ctx.lineTo(gx + 2, gy + cs);
+            this.ctx.fill();
+            
+            // Eyes
+            this.ctx.fillStyle = 'white';
+            this.ctx.beginPath();
+            this.ctx.arc(gx + cs/3, gy + cs/2 - 2, 2, 0, Math.PI*2);
+            this.ctx.arc(gx + cs*2/3, gy + cs/2 - 2, 2, 0, Math.PI*2);
+            this.ctx.fill();
+        });
+    },
+
+    gameOver: function(won) {
+        this.stop();
+        if (won) {
+            Suite.showModal("YOU WON!", `Score: ${this.score}`);
+            if(window.confetti) confetti({particleCount: 150, spread: 70, origin: { y: 0.6 }});
+        } else {
+            Suite.showModal("GAME OVER", `Score: ${this.score}`);
+        }
+    }
+};
 
     // --- 5. TIC TAC TOE SUITE ---
     const TTT = {
