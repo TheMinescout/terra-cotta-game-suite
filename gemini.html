@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Terra Cotta Game Suite</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23DD8566%22/><text x=%2250%%22 y=%2250%%22 dominant-baseline=%22central%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2260%22 fill=%22white%22>T</text></svg>">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #DD8566;
+            --bg: #FFFFFF;
+            --text: #474D4D;
+            --surface: #F5F5F5;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0; font-family: 'Roboto', sans-serif; background: var(--bg); color: var(--text);
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+        }
+
+        /* UI Shell */
+        #app-header {
+            padding: 16px; display: flex; align-items: center; justify-content: space-between;
+            background: var(--bg); border-bottom: 1px solid var(--surface); z-index: 100;
+        }
+        h1 { margin: 0; font-size: 1.2rem; color: var(--primary); font-weight: 700; }
+        
+        .btn {
+            background: var(--primary); color: white; border: none; padding: 10px 20px;
+            border-radius: 24px; font-weight: 500; cursor: pointer; transition: opacity 0.2s;
+            display: flex; align-items: center; gap: 8px; font-size: 0.9rem;
+        }
+        .btn:active { opacity: 0.8; }
+        .btn-secondary { background: var(--surface); color: var(--text); }
+
+        #game-container { flex: 1; position: relative; overflow-y: auto; overflow-x: hidden; }
+        
+        /* Hub Style */
+        .hub-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px; padding: 20px; max-width: 900px; margin: 0 auto;
+        }
+        .game-card {
+            background: var(--surface); border-radius: var(--radius); padding: 20px;
+            text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--shadow);
+        }
+        .game-card:active { transform: scale(0.95); }
+        .game-card .icon { font-size: 2rem; margin-bottom: 8px; display: block; }
+
+        /* Generic Game Views */
+        .view { display: none; width: 100%; height: 100%; padding: 20px; flex-direction: column; align-items: center; }
+        .view.active { display: flex; }
+        canvas { background: #000; border-radius: 8px; box-shadow: var(--shadow); max-width: 100%; height: auto; touch-action: none; }
+
+        /* Tic Tac Toe UI */
+        .ttt-grid { display: grid; gap: 8px; margin-top: 20px; }
+        .ttt-cell { 
+            width: 80px; height: 80px; background: var(--surface); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 2rem;
+            font-weight: bold; cursor: pointer;
+        }
+        
+        /* 3D TTT Layers */
+        .ttt-3d-container { perspective: 1000px; margin-top: 20px; }
+        .ttt-layer { 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; 
+            transform: rotateX(60deg) rotateZ(-45deg); margin-bottom: -40px;
+            transition: transform 0.5s;
+        }
+        .ttt-layer .ttt-cell { width: 50px; height: 50px; font-size: 1.2rem; border: 1px solid #ccc; }
+        
+        /* Multiplayer Overlay */
+        #mp-overlay {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.95);
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 200;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <header id="app-header">
+        <h1 id="header-title">Terra Cotta Suite</h1>
+        <button id="back-btn" class="btn btn-secondary hidden" onclick="app.showHub()">← Back</button>
+    </header>
+
+    <div id="game-container">
+        <div id="view-hub" class="view active">
+            <div class="hub-grid">
+                <div class="game-card" onclick="app.loadGame('ttt')"><span class="icon">#</span>Tic-Tac-Toe</div>
+                <div class="game-card" onclick="app.loadGame('snake')"><span class="icon">🐍</span>Snake</div>
+                <div class="game-card" onclick="app.loadGame('mines')"><span class="icon">💣</span>Minesweeper</div>
+                <div class="game-card" onclick="app.loadGame('dino')"><span class="icon">🦖</span>Dino Run</div>
+                <div class="game-card" onclick="app.loadGame('pacman')"><span class="icon">🍕</span>Pac-Man</div>
+            </div>
+        </div>
+
+        <div id="view-ttt" class="view">
+            <div id="ttt-menu">
+                <button class="btn" onclick="ttt.init('2d')">Classic 3x3</button><br>
+                <button class="btn" onclick="ttt.init('3d')">3D Stacked</button><br>
+                <button class="btn" onclick="ttt.init('ultimate')">Ultimate (9x9)</button>
+            </div>
+            <div id="ttt-board-container"></div>
+        </div>
+
+        <div id="view-canvas" class="view">
+            <div id="game-status" style="margin-bottom: 10px; font-weight: 500;">Score: 0</div>
+            <canvas id="main-canvas"></canvas>
+        </div>
+
+        <div id="view-mines" class="view">
+            <div id="mines-board" style="display: grid; gap: 2px; background: #ccc; padding: 2px;"></div>
+        </div>
+    </div>
+
+    <div id="mp-overlay">
+        <h2 id="mp-status">Multiplayer</h2>
+        <p id="my-id">Your Code: ---</p>
+        <input type="text" id="join-id" placeholder="Enter Code" style="padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <br>
+        <button class="btn" onclick="network.join()">Join Game</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('mp-overlay').style.display='none'">Cancel</button>
+    </div>
+
+    <script>
+        /** GLOBAL APP STATE **/
+        const app = {
+            activeGame: null,
+            ctx: document.getElementById('main-canvas').getContext('2d'),
+            canvas: document.getElementById('main-canvas'),
+            
+            showHub() {
+                if (this.gameLoop) cancelAnimationFrame(this.gameLoop);
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                document.getElementById('view-hub').classList.add('active');
+                document.getElementById('back-btn').classList.add('hidden');
+                document.getElementById('header-title').innerText = "Terra Cotta Suite";
+                this.activeGame = null;
+            },
+
+            loadGame(id) {
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                document.getElementById('back-btn').classList.remove('hidden');
+                this.activeGame = id;
+
+                if (id === 'ttt') {
+                    document.getElementById('view-ttt').classList.add('active');
+                    document.getElementById('header-title').innerText = "Tic-Tac-Toe";
+                } else if (id === 'mines') {
+                    document.getElementById('view-mines').classList.add('active');
+                    mines.init();
+                } else {
+                    document.getElementById('view-canvas').classList.add('active');
+                    if (id === 'snake') snake.init();
+                    if (id === 'dino') dino.init();
+                    if (id === 'pacman') pacman.init();
+                }
+            }
+        };
+
+        /** SNAKE GAME **/
+        const snake = {
+            gridSize: 20,
+            body: [],
+            dir: {x: 1, y: 0},
+            food: {x: 5, y: 5},
+            score: 0,
+            init() {
+                app.canvas.width = 400; app.canvas.height = 400;
+                this.body = [{x: 10, y: 10}];
+                this.dir = {x: 1, y: 0};
+                this.score = 0;
+                this.spawnFood();
+                this.loop();
+            },
+            spawnFood() {
+                this.food = { 
+                    x: Math.floor(Math.random() * 20), 
+                    y: Math.floor(Math.random() * 20) 
+                };
+            },
+            loop() {
+                if (app.activeGame !== 'snake') return;
+                setTimeout(() => {
+                    this.update();
+                    this.draw();
+                    this.loop();
+                }, 100);
+            },
+            update() {
+                const head = { x: this.body[0].x + this.dir.x, y: this.body[0].y + this.dir.y };
+                if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20) return this.init();
+                if (this.body.some(b => b.x === head.x && b.y === head.y)) return this.init();
+                
+                this.body.unshift(head);
+                if (head.x === this.food.x && head.y === this.food.y) {
+                    this.score += 10;
+                    this.spawnFood();
+                    confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+                } else {
+                    this.body.pop();
+                }
+                document.getElementById('game-status').innerText = `Score: ${this.score}`;
+            },
+            draw() {
+                const { ctx, canvas } = app;
+                ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#DD8566';
+                this.body.forEach(p => ctx.fillRect(p.x * 20, p.y * 20, 18, 18));
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(this.food.x * 20, this.food.y * 20, 18, 18);
+            }
+        };
+
+        /** DINO RUN **/
+        const dino = {
+            y: 0, vy: 0, 
+            obstacles: [], 
+            frame: 0,
+            init() {
+                app.canvas.width = 600; app.canvas.height = 200;
+                this.y = 150; this.vy = 0; this.obstacles = []; this.frame = 0;
+                this.loop();
+            },
+            loop() {
+                if (app.activeGame !== 'dino') return;
+                this.update();
+                this.draw();
+                app.gameLoop = requestAnimationFrame(() => this.loop());
+            },
+            update() {
+                this.frame++;
+                this.vy += 0.8; // Gravity
+                this.y += this.vy;
+                if (this.y > 150) { this.y = 150; this.vy = 0; }
+                
+                if (this.frame % 100 === 0) this.obstacles.push({x: 600, w: 20});
+                this.obstacles.forEach(o => o.x -= 5);
+                
+                // Collision
+                this.obstacles.forEach(o => {
+                    if (o.x < 50 && o.x > 20 && this.y > 120) this.init();
+                });
+                this.obstacles = this.obstacles.filter(o => o.x > -20);
+            },
+            draw() {
+                const { ctx } = app;
+                ctx.fillStyle = '#F5F5F5'; ctx.fillRect(0, 0, 600, 200);
+                ctx.fillStyle = '#474D4D'; ctx.fillRect(20, this.y, 30, 30); // Dino
+                ctx.fillStyle = '#DD8566';
+                this.obstacles.forEach(o => ctx.fillRect(o.x, 160, o.w, 20));
+            }
+        };
+
+        /** MINESWEEPER **/
+        const mines = {
+            size: 10, minesCount: 15, board: [],
+            init() {
+                const container = document.getElementById('mines-board');
+                container.innerHTML = '';
+                container.style.gridTemplateColumns = `repeat(${this.size}, 30px)`;
+                this.board = Array(this.size * this.size).fill(0).map((_, i) => ({
+                    id: i, mine: false, revealed: false, flagged: false, neighbors: 0
+                }));
+                
+                let placed = 0;
+                while(placed < this.minesCount) {
+                    let idx = Math.floor(Math.random() * this.board.length);
+                    if(!this.board[idx].mine) { this.board[idx].mine = true; placed++; }
+                }
+
+                this.board.forEach(cell => {
+                    const el = document.createElement('div');
+                    el.style.width = '30px'; el.style.height = '30px';
+                    el.style.background = '#474D4D';
+                    el.style.display = 'flex'; el.style.alignItems = 'center';
+                    el.style.justifyContent = 'center'; el.style.cursor = 'pointer';
+                    el.style.color = 'white'; el.style.fontSize = '12px';
+                    el.onclick = () => this.reveal(cell.id);
+                    el.oncontextmenu = (e) => { e.preventDefault(); this.flag(cell.id); };
+                    cell.el = el;
+                    container.appendChild(el);
+                });
+            },
+            reveal(idx) {
+                const cell = this.board[idx];
+                if (cell.revealed || cell.flagged) return;
+                cell.revealed = true;
+                cell.el.style.background = '#eee';
+                cell.el.style.color = '#474D4D';
+                if (cell.mine) {
+                    alert('Game Over!'); this.init(); return;
+                }
+                // Simplified logic: show count
+                const count = this.getNeighbors(idx);
+                if (count > 0) cell.el.innerText = count;
+                else {
+                    // Basic flood fill
+                    [ -11, -10, -9, -1, 1, 9, 10, 11 ].forEach(offset => {
+                        const n = idx + offset;
+                        if (this.board[n]) this.reveal(n);
+                    });
+                }
+            },
+            getNeighbors(idx) {
+                return [ -11, -10, -9, -1, 1, 9, 10, 11 ].filter(offset => {
+                    const n = this.board[idx + offset];
+                    return n && n.mine;
+                }).length;
+            },
+            flag(idx) {
+                const cell = this.board[idx];
+                if (cell.revealed) return;
+                cell.flagged = !cell.flagged;
+                cell.el.innerText = cell.flagged ? '🚩' : '';
+            }
+        };
+
+        /** TIC TAC TOE (CLASSIC & 3D) **/
+        const ttt = {
+            mode: '2d',
+            state: [],
+            turn: 'X',
+            init(mode) {
+                this.mode = mode;
+                this.turn = 'X';
+                const container = document.getElementById('ttt-board-container');
+                container.innerHTML = '';
+                
+                if (mode === '2d') {
+                    this.state = Array(9).fill(null);
+                    const g = document.createElement('div');
+                    g.className = 'ttt-grid'; g.style.gridTemplateColumns = 'repeat(3, 80px)';
+                    this.state.forEach((_, i) => g.appendChild(this.createCell(i)));
+                    container.appendChild(g);
+                } else if (mode === '3d') {
+                    this.state = Array(27).fill(null);
+                    const outer = document.createElement('div');
+                    outer.className = 'ttt-3d-container';
+                    for(let l=0; l<3; l++) {
+                        const layer = document.createElement('div');
+                        layer.className = 'ttt-layer';
+                        for(let i=0; i<9; i++) layer.appendChild(this.createCell(l*9 + i));
+                        outer.appendChild(layer);
+                    }
+                    container.appendChild(outer);
+                }
+            },
+            createCell(i) {
+                const c = document.createElement('div');
+                c.className = 'ttt-cell';
+                c.onclick = () => {
+                    if (this.state[i]) return;
+                    this.state[i] = this.turn;
+                    c.innerText = this.turn;
+                    c.style.color = this.turn === 'X' ? '#DD8566' : '#474D4D';
+                    if (this.checkWin()) {
+                        confetti();
+                        setTimeout(() => alert(this.turn + " Wins!"), 100);
+                        this.init(this.mode);
+                    }
+                    this.turn = this.turn === 'X' ? 'O' : 'X';
+                };
+                return c;
+            },
+            checkWin() {
+                // Simplified 2D check
+                const winLines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+                return winLines.some(l => this.state[l[0]] && this.state[l[0]] === this.state[l[1]] && this.state[l[0]] === this.state[l[2]]);
+            }
+        };
+
+        /** PACMAN LITE **/
+        const pacman = {
+            pos: {x: 1, y: 1},
+            ghost: {x: 8, y: 8},
+            init() {
+                app.canvas.width = 300; app.canvas.height = 300;
+                this.pos = {x: 1, y: 1};
+                this.ghost = {x: 8, y: 8};
+                this.loop();
+            },
+            loop() {
+                if (app.activeGame !== 'pacman') return;
+                this.update();
+                this.draw();
+                setTimeout(() => this.loop(), 200);
+            },
+            update() {
+                // Ghost random AI
+                const dirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+                const d = dirs[Math.floor(Math.random()*4)];
+                this.ghost.x = Math.max(0, Math.min(9, this.ghost.x + d.x));
+                this.ghost.y = Math.max(0, Math.min(9, this.ghost.y + d.y));
+                if (this.pos.x === this.ghost.x && this.pos.y === this.ghost.y) this.init();
+            },
+            draw() {
+                const ctx = app.ctx;
+                ctx.fillStyle = '#111'; ctx.fillRect(0,0,300,300);
+                ctx.fillStyle = 'yellow'; ctx.beginPath();
+                ctx.arc(this.pos.x*30+15, this.pos.y*30+15, 12, 0.2*Math.PI, 1.8*Math.PI);
+                ctx.lineTo(this.pos.x*30+15, this.pos.y*30+15); ctx.fill();
+                ctx.fillStyle = 'red'; ctx.fillRect(this.ghost.x*30+5, this.ghost.y*30+5, 20, 20);
+            }
+        };
+
+        /** INPUTS **/
+        window.addEventListener('keydown', e => {
+            if (app.activeGame === 'snake') {
+                if (e.key === 'ArrowUp') snake.dir = {x:0, y:-1};
+                if (e.key === 'ArrowDown') snake.dir = {x:0, y:1};
+                if (e.key === 'ArrowLeft') snake.dir = {x:-1, y:0};
+                if (e.key === 'ArrowRight') snake.dir = {x:1, y:0};
+            }
+            if (app.activeGame === 'dino' && e.key === ' ') {
+                if (dino.y === 150) dino.vy = -12;
+            }
+            if (app.activeGame === 'pacman') {
+                if (e.key === 'ArrowUp') pacman.pos.y--;
+                if (e.key === 'ArrowDown') pacman.pos.y++;
+                if (e.key === 'ArrowLeft') pacman.pos.x--;
+                if (e.key === 'ArrowRight') pacman.pos.x++;
+            }
+        });
+
+        // Simple Swipe for Mobile
+        let touchStart = null;
+        window.addEventListener('touchstart', e => touchStart = e.touches[0]);
+        window.addEventListener('touchend', e => {
+            if (!touchStart) return;
+            let dx = e.changedTouches[0].clientX - touchStart.clientX;
+            let dy = e.changedTouches[0].clientY - touchStart.clientY;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (app.activeGame === 'snake') snake.dir = {x: dx > 0 ? 1 : -1, y: 0};
+                if (app.activeGame === 'pacman') pacman.pos.x += dx > 0 ? 1 : -1;
+            } else {
+                if (app.activeGame === 'snake') snake.dir = {x: 0, y: dy > 0 ? 1 : -1};
+                if (app.activeGame === 'pacman') pacman.pos.y += dy > 0 ? 1 : -1;
+                if (app.activeGame === 'dino' && dy < -10) if (dino.y === 150) dino.vy = -12;
+            }
+            touchStart = null;
+        });
+
+        const network = {
+            peer: null,
+            conn: null,
+            init() {
+                this.peer = new Peer();
+                this.peer.on('open', id => document.getElementById('my-id').innerText = "Code: " + id);
+                this.peer.on('connection', c => {
+                    this.conn = c;
+                    this.setupConn();
+                    alert("Player Connected!");
+                });
+            },
+            join() {
+                const id = document.getElementById('join-id').value;
+                this.conn = this.peer.connect(id);
+                this.setupConn();
+            },
+            setupConn() {
+                this.conn.on('data', data => {
+                    // Logic to sync TTT moves
+                });
+            }
+        };
+        network.init();
+
+    </script>
+</body>
+</html>
