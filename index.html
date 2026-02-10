@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#DD8566">
     <title>Terra Cotta Game Suite</title>
+    
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect x=%2210%22 y=%2210%22 width=%2244%22 height=%2244%22 rx=%228%22 fill=%22none%22 stroke=%22%23DD8566%22 stroke-width=%224%22/><circle cx=%2222%22 cy=%2222%22 r=%224%22 fill=%22%23474D4D%22/><circle cx=%2242%22 cy=%2222%22 r=%224%22 fill=%22%23474D4D%22/><path d=%22M20 40 Q32 50 44 40%22 stroke=%22%23474D4D%22 stroke-width=%224%22 fill=%22none%22 stroke-linecap=%22round%22/></svg>">
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
     
     <style>
@@ -82,36 +82,76 @@
         .ms-cell.flag { color: var(--primary); }
         
         /* --- TIC TAC TOE SPECIFIC --- */
+        #game-wrapper { position: relative; margin-top: 10px; transition: transform 0.5s; width: 100%; display: flex; justify-content: center; }
+        
+        /* SVG LINE OVERLAY (Thicker & Faster) */
+        #win-line-svg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 100; overflow: visible;
+            filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.3));
+        }
+        .win-path {
+            stroke: var(--primary); stroke-width: 16; stroke-linecap: round;
+            fill: none; opacity: 0.9; stroke-dasharray: 1000; stroke-dashoffset: 1000;
+            animation: drawLine 0.6s forwards cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        @keyframes drawLine { to { stroke-dashoffset: 0; } }
+
         .ttt-btn-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 15px 0; }
         .ttt-cell {
             display: flex; align-items: center; justify-content: center; font-weight: 700; cursor: pointer;
-            background: var(--bg); transition: 0.2s; border-radius: 4px;
+            background: var(--bg); transition: 0.2s; border-radius: 4px; position: relative; z-index: 2;
         }
         .ttt-cell.x { color: var(--text); } .ttt-cell.o { color: var(--primary); }
-        .ttt-cell.highlight { background-color: #FFDBCF !important; }
+        .ttt-cell.highlight { background-color: #FFDBCF !important; transition: background 0.5s; }
 
         #board-normal { display: grid; grid-template-columns: repeat(3, 80px); grid-template-rows: repeat(3, 80px); gap: 4px; background: var(--outline); padding: 4px; border-radius: 12px; }
         #board-normal .ttt-cell { font-size: 3rem; }
 
-        #board-3d { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; perspective: 1000px; }
-        .layer-3d { display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); gap: 4px; background: rgba(255,255,255,0.9); border: 1px solid var(--primary); padding: 5px; transform: rotateX(25deg); border-radius: 8px; }
-        #board-3d .ttt-cell { width: 50px; height: 50px; font-size: 1.5rem; background: #eee; }
+        /* 3D Board */
+        #board-3d { display: flex; flex-direction: row; gap: 30px; padding: 40px; transform: perspective(1200px) rotateX(30deg) scale(0.9); transform-style: preserve-3d; transition: all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .level-container { position: relative; transform-style: preserve-3d; transition: all 1.2s; }
+        .layer-label { position: absolute; right: -20px; bottom: -30px; width: 100%; text-align: center; transform: rotateX(-30deg); color: #999; font-size: 0.8rem; font-weight: 500; transition: opacity 0.5s; }
+        .layer-3d { display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); gap: 4px; padding: 8px; background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(221, 133, 102, 0.3); border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); transform: translateZ(0); transition: all 1.2s; }
+        #board-3d .ttt-cell { font-size: 1.5rem; width: 50px; height: 50px; background: rgba(245, 245, 245, 0.6); }
         
+        #board-3d.stacked { transform: perspective(1200px) rotateX(10deg) scale(1); gap: 0; flex-direction: column; }
+        #board-3d.stacked .level-container { margin-top: -160px; opacity: 0.8; }
+        #board-3d.stacked .level-container:first-child { margin-top: 0; opacity: 1; }
+        #board-3d.stacked .layer-label { opacity: 0; }
+
+        /* Ultimate Board */
         #board-ultimate { display: grid; grid-template-columns: repeat(3, auto); gap: 6px; background: var(--text); padding: 6px; border-radius: 12px; }
         .sub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--outline); padding: 2px; position: relative; }
         .sub-grid.active-zone { background: #FFDBCF; }
         .sub-grid.won-x::after { content: "X"; position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size: 80px; color: var(--text); opacity: 0.8; }
         .sub-grid.won-o::after { content: "O"; position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size: 80px; color: var(--primary); opacity: 0.8; }
         .sub-grid.won-x .ttt-cell, .sub-grid.won-o .ttt-cell { opacity: 0.1; }
-        #board-ultimate .ttt-cell { width: 32px; height: 32px; font-size: 1rem; }
+        #board-ultimate .ttt-cell { width: 32px; height: 32px; font-size: 1rem; background: var(--bg); }
 
-        /* TTT Multiplayer UI */
-        .code-box { background: var(--surface); padding: 10px; font-family: monospace; font-size: 1.5rem; border: 2px dashed var(--outline); color: var(--primary); margin: 10px; user-select: all; }
+        /* Toggles & Codes */
+        .toggle-wrapper { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.9rem; color: #777; justify-content: center;}
+        .switch { position: relative; display: inline-block; width: 40px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+        .code-box { background: var(--surface); padding: 10px; font-family: monospace; font-size: 1.5rem; border: 2px dashed var(--outline); color: var(--primary); margin: 10px; user-select: all; cursor: pointer; }
         input.mp-input { padding: 10px; border: 2px solid var(--outline); border-radius: 8px; text-align: center; font-size: 1.2rem; width: 200px; text-transform: uppercase; }
 
         /* Modal */
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; display:none; justify-content:center; align-items:center; }
         .modal { background:white; padding:30px; border-radius:16px; max-width:400px; width:90%; text-align:center; }
+
+        @media (max-width: 600px) {
+            #board-3d { flex-direction: column; gap: 20px; transform: perspective(1200px) rotateX(30deg) scale(0.8); }
+            #board-3d.stacked { margin-top: 100px; }
+            .layer-label { right: auto; left: 50%; transform: translateX(-50%) rotateX(-30deg); bottom: -25px; }
+            #board-normal { grid-template-columns: repeat(3, 70px); grid-template-rows: repeat(3, 70px); }
+            #board-normal .ttt-cell { font-size: 2.5rem; }
+        }
     </style>
 </head>
 <body>
@@ -184,12 +224,19 @@
 
     <div id="screen-ttt" class="screen">
         <h1>Tic-Tac-Toe</h1>
+        
         <div id="ttt-menu">
             <div class="btn-group">
                 <button onclick="TTT.setup('local')">Pass & Play</button>
                 <button onclick="TTT.setup('bot')">vs Bot</button>
                 <button onclick="TTT.setup('mp')">Multiplayer</button>
             </div>
+            
+            <div class="toggle-wrapper">
+                <label class="switch"><input type="checkbox" id="anim-toggle" checked><span class="slider"></span></label>
+                <span>Cinematic Win Effects</span>
+            </div>
+
             <button class="back-btn" onclick="Suite.goHome()">Exit to Hub</button>
         </div>
 
@@ -230,7 +277,12 @@
                 <span id="p2-score">P2: 0</span>
             </div>
             <div id="ttt-turn" style="color:var(--primary); font-weight:bold; margin-bottom:15px;">Turn: X</div>
-            <div id="ttt-board-container"></div>
+            
+            <div id="game-wrapper">
+                <svg id="win-line-svg"></svg>
+                <div id="ttt-board-container"></div>
+            </div>
+
             <button id="ttt-restart" class="btn-primary" style="margin-top:20px; display:none;" onclick="TTT.restart()">Next Round</button>
             <button class="back-btn" onclick="TTT.showMenu()">End Game</button>
         </div>
@@ -250,18 +302,14 @@
         goHome: () => {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screen-hub').classList.add('active');
-            // Stop all game loops
-            SnakeGame.stop();
-            DinoGame.stop();
-            PacGame.stop();
-            // Destroy peer if TTT active
+            SnakeGame.stop(); DinoGame.stop(); PacGame.stop();
             if(TTT.peer) { TTT.peer.destroy(); TTT.peer = null; }
         },
         loadGame: (id) => {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screen-' + id).classList.add('active');
             if(id === 'snake') SnakeGame.start();
-            if(id === 'dino') DinoGame.draw(); // Init draw
+            if(id === 'dino') DinoGame.draw();
             if(id === 'pacman') PacGame.start();
             if(id === 'ttt') TTT.showMenu();
         },
@@ -272,69 +320,43 @@
         }
     };
 
-    // --- 1. SNAKE GAME MODULE ---
+    // --- 1. SNAKE GAME ---
     const SnakeGame = {
         canvas: document.getElementById('snake-canvas'),
         ctx: document.getElementById('snake-canvas').getContext('2d'),
-        grid: 15,
-        count: 0,
-        snake: {x: 160, y: 160, dx: 15, dy: 0, cells: [], maxCells: 4},
-        apple: {x: 320, y: 320},
-        score: 0,
-        running: false,
-        interval: null,
-
+        grid: 15, snake: {}, apple: {}, score: 0, running: false, interval: null,
         start: function() {
             this.snake = {x: 150, y: 150, dx: this.grid, dy: 0, cells: [], maxCells: 4};
             this.apple = {x: 60, y: 60};
-            this.score = 0;
-            this.running = true;
+            this.score = 0; this.running = true;
             document.getElementById('snake-score').innerText = 0;
             if(this.interval) clearInterval(this.interval);
             this.interval = setInterval(() => this.loop(), 100);
-            
-            // Input
             document.addEventListener('keydown', this.handleInput.bind(this));
-            // Simple Touch
             this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this));
             this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this));
         },
         stop: function() { this.running = false; clearInterval(this.interval); },
-        
         loop: function() {
             if(!this.running) return;
             this.ctx.clearRect(0,0, this.canvas.width, this.canvas.height);
-            this.snake.x += this.snake.dx;
-            this.snake.y += this.snake.dy;
-
-            // Wrap
+            this.snake.x += this.snake.dx; this.snake.y += this.snake.dy;
             if(this.snake.x < 0) this.snake.x = this.canvas.width - this.grid;
             else if(this.snake.x >= this.canvas.width) this.snake.x = 0;
             if(this.snake.y < 0) this.snake.y = this.canvas.height - this.grid;
             else if(this.snake.y >= this.canvas.height) this.snake.y = 0;
-
             this.snake.cells.unshift({x: this.snake.x, y: this.snake.y});
             if(this.snake.cells.length > this.snake.maxCells) this.snake.cells.pop();
-
-            // Draw Apple (Terra Cotta)
-            this.ctx.fillStyle = '#DD8566';
-            this.ctx.fillRect(this.apple.x, this.apple.y, this.grid-1, this.grid-1);
-
-            // Draw Snake (Dark Grey)
+            this.ctx.fillStyle = '#DD8566'; this.ctx.fillRect(this.apple.x, this.apple.y, this.grid-1, this.grid-1);
             this.ctx.fillStyle = '#474D4D';
             this.snake.cells.forEach((cell, index) => {
                 this.ctx.fillRect(cell.x, cell.y, this.grid-1, this.grid-1);
-                // Self Collision
                 if(index > 0 && cell.x === this.snake.cells[0].x && cell.y === this.snake.cells[0].y) {
-                    this.stop();
-                    Suite.showModal("Game Over", "Final Score: " + this.score);
+                    this.stop(); Suite.showModal("Game Over", "Final Score: " + this.score);
                 }
             });
-
-            // Eat Apple
             if(this.snake.cells[0].x === this.apple.x && this.snake.cells[0].y === this.apple.y) {
-                this.snake.maxCells++;
-                this.score += 10;
+                this.snake.maxCells++; this.score += 10;
                 document.getElementById('snake-score').innerText = this.score;
                 this.apple.x = Math.floor(Math.random() * (this.canvas.width/this.grid)) * this.grid;
                 this.apple.y = Math.floor(Math.random() * (this.canvas.height/this.grid)) * this.grid;
@@ -346,13 +368,11 @@
             else if(e.which === 39 && this.snake.dx === 0) { this.snake.dx = this.grid; this.snake.dy = 0; }
             else if(e.which === 40 && this.snake.dy === 0) { this.snake.dy = this.grid; this.snake.dx = 0; }
         },
-        // Touch Vars
         xDown: null, yDown: null,
         handleTouchStart: function(evt) { this.xDown = evt.touches[0].clientX; this.yDown = evt.touches[0].clientY; },
         handleTouchMove: function(evt) {
             if (!this.xDown || !this.yDown) return;
-            var xUp = evt.touches[0].clientX; var yUp = evt.touches[0].clientY;
-            var xDiff = this.xDown - xUp; var yDiff = this.yDown - yUp;
+            var xDiff = this.xDown - evt.touches[0].clientX; var yDiff = this.yDown - evt.touches[0].clientY;
             if (Math.abs(xDiff) > Math.abs(yDiff)) {
                 if (xDiff > 0 && this.snake.dx===0) { this.snake.dx=-this.grid; this.snake.dy=0; } 
                 else if (this.snake.dx===0) { this.snake.dx=this.grid; this.snake.dy=0; }
@@ -360,12 +380,11 @@
                 if (yDiff > 0 && this.snake.dy===0) { this.snake.dy=-this.grid; this.snake.dx=0; } 
                 else if (this.snake.dy===0) { this.snake.dy=this.grid; this.snake.dx=0; }
             }
-            this.xDown = null; this.yDown = null;
-            evt.preventDefault();
+            this.xDown = null; this.yDown = null; evt.preventDefault();
         }
     };
 
-    // --- 2. MINESWEEPER MODULE ---
+    // --- 2. MINESWEEPER ---
     const MinesGame = {
         grid: [], rows: 10, cols: 10, mines: 15, gameOver: false,
         init: function(diff) {
@@ -375,226 +394,117 @@
             board.style.gridTemplateColumns = `repeat(${this.cols}, 30px)`;
             board.innerHTML = '';
             this.grid = [];
-            
-            // Create Grid
             for(let r=0; r<this.rows; r++) {
                 let row = [];
                 for(let c=0; c<this.cols; c++) {
-                    const el = document.createElement('div');
-                    el.className = 'ms-cell';
+                    const el = document.createElement('div'); el.className = 'ms-cell';
                     el.onclick = () => this.click(r,c);
                     el.oncontextmenu = (e) => { e.preventDefault(); this.flag(r,c); };
-                    // Long press for mobile
-                    let pressTimer;
-                    el.ontouchstart = () => { pressTimer = setTimeout(() => this.flag(r,c), 500); }
+                    let pressTimer; el.ontouchstart = () => { pressTimer = setTimeout(() => this.flag(r,c), 500); };
                     el.ontouchend = () => clearTimeout(pressTimer);
-                    
                     board.appendChild(el);
                     row.push({el: el, mine: false, revealed: false, flagged: false, neighbors: 0});
                 }
                 this.grid.push(row);
             }
-            // Plant Mines
             let minesPlaced = 0;
             while(minesPlaced < this.mines) {
-                let r = Math.floor(Math.random()*this.rows);
-                let c = Math.floor(Math.random()*this.cols);
-                if(!this.grid[r][c].mine) {
-                    this.grid[r][c].mine = true;
-                    minesPlaced++;
-                }
+                let r = Math.floor(Math.random()*this.rows); let c = Math.floor(Math.random()*this.cols);
+                if(!this.grid[r][c].mine) { this.grid[r][c].mine = true; minesPlaced++; }
             }
-            // Calc Neighbors
-            for(let r=0; r<this.rows; r++) {
-                for(let c=0; c<this.cols; c++) {
-                    if(this.grid[r][c].mine) continue;
-                    let count = 0;
-                    for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) {
-                        if(r+i>=0 && r+i<this.rows && c+j>=0 && c+j<this.cols && this.grid[r+i][c+j].mine) count++;
-                    }
-                    this.grid[r][c].neighbors = count;
-                }
+            for(let r=0; r<this.rows; r++) for(let c=0; c<this.cols; c++) {
+                if(this.grid[r][c].mine) continue;
+                let count = 0;
+                for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) if(r+i>=0 && r+i<this.rows && c+j>=0 && c+j<this.cols && this.grid[r+i][c+j].mine) count++;
+                this.grid[r][c].neighbors = count;
             }
         },
         click: function(r,c) {
             if(this.gameOver || this.grid[r][c].flagged || this.grid[r][c].revealed) return;
-            const cell = this.grid[r][c];
-            cell.revealed = true;
-            cell.el.classList.add('revealed');
-            
+            const cell = this.grid[r][c]; cell.revealed = true; cell.el.classList.add('revealed');
             if(cell.mine) {
-                cell.el.classList.add('bomb');
-                cell.el.innerText = '💣';
-                this.gameOver = true;
+                cell.el.classList.add('bomb'); cell.el.innerText = '💣'; this.gameOver = true;
                 setTimeout(() => Suite.showModal("BOOM", "You hit a mine!"), 200);
             } else {
                 if(cell.neighbors > 0) {
                     cell.el.innerText = cell.neighbors;
-                    // Colors for numbers
-                    const colors = ['#DD8566','#474D4D','#d35400','#2c3e50'];
-                    cell.el.style.color = colors[(cell.neighbors-1)%4];
+                    cell.el.style.color = ['#DD8566','#474D4D','#d35400','#2c3e50'][(cell.neighbors-1)%4];
                 } else {
-                    // Flood fill
-                    for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) {
-                        if(r+i>=0 && r+i<this.rows && c+j>=0 && c+j<this.cols) this.click(r+i, c+j);
-                    }
+                    for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) if(r+i>=0 && r+i<this.rows && c+j>=0 && c+j<this.cols) this.click(r+i, c+j);
                 }
             }
         },
         flag: function(r,c) {
             if(this.gameOver || this.grid[r][c].revealed) return;
-            const cell = this.grid[r][c];
-            cell.flagged = !cell.flagged;
-            cell.el.innerText = cell.flagged ? '🚩' : '';
-            cell.el.classList.toggle('flag');
+            const cell = this.grid[r][c]; cell.flagged = !cell.flagged;
+            cell.el.innerText = cell.flagged ? '🚩' : ''; cell.el.classList.toggle('flag');
         }
     };
 
-    // --- 3. DINO RUN MODULE ---
+    // --- 3. DINO RUN ---
     const DinoGame = {
-        canvas: document.getElementById('dino-canvas'),
-        ctx: document.getElementById('dino-canvas').getContext('2d'),
-        running: false,
-        dino: {x: 50, y: 150, w: 30, h: 30, dy: 0, jump: false, grounded: true},
-        obstacles: [],
-        frame: 0, score: 0, gravity: 0.8, speed: 6,
-        
+        canvas: document.getElementById('dino-canvas'), ctx: document.getElementById('dino-canvas').getContext('2d'),
+        running: false, dino: {x: 50, y: 150, w: 30, h: 30, dy: 0, grounded: true}, obstacles: [], frame: 0, score: 0, gravity: 0.8, speed: 6,
         start: function() {
-            this.running = true;
-            this.score = 0;
-            this.frame = 0;
-            this.obstacles = [];
-            this.dino.y = 150;
-            this.dino.dy = 0;
-            this.speed = 6;
+            this.running = true; this.score = 0; this.frame = 0; this.obstacles = [];
+            this.dino.y = 150; this.dino.dy = 0; this.speed = 6;
             document.getElementById('dino-start-btn').style.display = 'none';
-            
             if(this.interval) clearInterval(this.interval);
             this.interval = setInterval(() => this.update(), 20);
-            
             document.addEventListener('keydown', (e) => { if(e.code==='Space') this.jump(); });
             this.canvas.addEventListener('touchstart', (e) => { e.preventDefault(); this.jump(); });
         },
         stop: function() {
-            this.running = false;
-            clearInterval(this.interval);
+            this.running = false; clearInterval(this.interval);
             document.getElementById('dino-start-btn').style.display = 'inline-block';
             document.getElementById('dino-start-btn').innerText = "Try Again";
         },
-        jump: function() {
-            if(this.dino.grounded) {
-                this.dino.dy = -12;
-                this.dino.grounded = false;
-            }
-        },
+        jump: function() { if(this.dino.grounded) { this.dino.dy = -12; this.dino.grounded = false; } },
         update: function() {
             this.ctx.clearRect(0,0,600,200);
-            
-            // Dino Physics
-            this.dino.dy += this.gravity;
-            this.dino.y += this.dino.dy;
-            if(this.dino.y > 150) {
-                this.dino.y = 150;
-                this.dino.dy = 0;
-                this.dino.grounded = true;
-            }
-
-            // Draw Dino (Terra Cotta Square)
-            this.ctx.fillStyle = '#DD8566';
-            this.ctx.fillRect(this.dino.x, this.dino.y, this.dino.w, this.dino.h);
-
-            // Ground
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, 180);
-            this.ctx.lineTo(600, 180);
-            this.ctx.strokeStyle = '#474D4D';
-            this.ctx.stroke();
-
-            // Obstacles
+            this.dino.dy += this.gravity; this.dino.y += this.dino.dy;
+            if(this.dino.y > 150) { this.dino.y = 150; this.dino.dy = 0; this.dino.grounded = true; }
+            this.ctx.fillStyle = '#DD8566'; this.ctx.fillRect(this.dino.x, this.dino.y, this.dino.w, this.dino.h);
+            this.ctx.beginPath(); this.ctx.moveTo(0, 180); this.ctx.lineTo(600, 180); this.ctx.strokeStyle = '#474D4D'; this.ctx.stroke();
             this.frame++;
-            if(this.frame % 90 === 0) {
-                this.obstacles.push({x: 600, w: 20, h: 30 + Math.random()*20});
-                this.speed += 0.1;
-            }
-
+            if(this.frame % 90 === 0) { this.obstacles.push({x: 600, w: 20, h: 30 + Math.random()*20}); this.speed += 0.1; }
             this.ctx.fillStyle = '#474D4D';
-            this.obstacles.forEach((obs, i) => {
-                obs.x -= this.speed;
-                this.ctx.fillRect(obs.x, 180 - obs.h, obs.w, obs.h);
-                
-                // Collision
-                if (this.dino.x < obs.x + obs.w &&
-                    this.dino.x + this.dino.w > obs.x &&
-                    this.dino.y < 180 &&
-                    this.dino.y + this.dino.h > 180 - obs.h) {
-                    this.stop();
-                    Suite.showModal("Crashed!", "Score: " + Math.floor(this.score));
+            this.obstacles.forEach((obs) => {
+                obs.x -= this.speed; this.ctx.fillRect(obs.x, 180 - obs.h, obs.w, obs.h);
+                if (this.dino.x < obs.x + obs.w && this.dino.x + this.dino.w > obs.x && this.dino.y < 180 && this.dino.y + this.dino.h > 180 - obs.h) {
+                    this.stop(); Suite.showModal("Crashed!", "Score: " + Math.floor(this.score));
                 }
             });
-
-            this.score += 0.1;
-            document.getElementById('dino-score').innerText = Math.floor(this.score);
+            this.score += 0.1; document.getElementById('dino-score').innerText = Math.floor(this.score);
         },
         draw: function() {
-            this.ctx.clearRect(0,0,600,200);
-            this.ctx.fillStyle = '#DD8566';
-            this.ctx.fillRect(50, 150, 30, 30);
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, 180);
-            this.ctx.lineTo(600, 180);
-            this.ctx.strokeStyle = '#474D4D';
-            this.ctx.stroke();
+            this.ctx.clearRect(0,0,600,200); this.ctx.fillStyle = '#DD8566'; this.ctx.fillRect(50, 150, 30, 30);
+            this.ctx.beginPath(); this.ctx.moveTo(0, 180); this.ctx.lineTo(600, 180); this.ctx.strokeStyle = '#474D4D'; this.ctx.stroke();
         }
     };
 
-    // --- 4. PACMAN LITE MODULE ---
+    // --- 4. PACMAN LITE ---
     const PacGame = {
-        canvas: document.getElementById('pac-canvas'),
-        ctx: document.getElementById('pac-canvas').getContext('2d'),
-        grid: 20,
-        pac: {x: 1, y: 1},
-        ghosts: [{x:13, y:13, color:'#474D4D'}, {x:13, y:1, color:'#999'}],
-        map: [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,2,2,2,2,2,2,1,2,2,2,2,2,2,1],
-            [1,2,1,1,1,2,2,1,2,2,1,1,1,2,1],
-            [1,2,1,1,1,2,2,2,2,2,1,1,1,2,1],
-            [1,2,2,2,2,2,1,1,1,2,2,2,2,2,1],
-            [1,2,1,1,1,2,2,2,2,2,1,1,1,2,1],
-            [1,2,2,2,2,2,2,1,2,2,2,2,2,2,1],
-            [1,2,1,1,1,2,2,2,2,2,1,1,1,2,1],
-            [1,2,2,2,2,2,2,1,2,2,2,2,2,2,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        ],
+        canvas: document.getElementById('pac-canvas'), ctx: document.getElementById('pac-canvas').getContext('2d'),
+        grid: 20, pac: {x: 1, y: 1}, ghosts: [{x:13, y:13, color:'#474D4D'}, {x:13, y:1, color:'#999'}],
+        map: [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,2,2,2,2,2,2,1,2,2,2,2,2,2,1],[1,2,1,1,1,2,2,1,2,2,1,1,1,2,1],[1,2,1,1,1,2,2,2,2,2,1,1,1,2,1],[1,2,2,2,2,2,1,1,1,2,2,2,2,2,1],[1,2,1,1,1,2,2,2,2,2,1,1,1,2,1],[1,2,2,2,2,2,2,1,2,2,2,2,2,2,1],[1,2,1,1,1,2,2,2,2,2,1,1,1,2,1],[1,2,2,2,2,2,2,1,2,2,2,2,2,2,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],
         score: 0, running: false, interval: null,
-
         start: function() {
-            this.pac = {x: 1, y: 1};
-            this.score = 0;
-            this.running = true;
-            // Reset map dots
+            this.pac = {x: 1, y: 1}; this.score = 0; this.running = true;
             for(let y=0; y<10; y++) for(let x=0; x<15; x++) if(this.map[y][x]===0) this.map[y][x]=2;
-            
-            if(this.interval) clearInterval(this.interval);
-            this.interval = setInterval(() => this.update(), 200);
-            
+            if(this.interval) clearInterval(this.interval); this.interval = setInterval(() => this.update(), 200);
             document.addEventListener('keydown', (e) => {
                 let nx = this.pac.x; let ny = this.pac.y;
-                if(e.key === 'ArrowUp') ny--;
-                if(e.key === 'ArrowDown') ny++;
-                if(e.key === 'ArrowLeft') nx--;
-                if(e.key === 'ArrowRight') nx++;
+                if(e.key === 'ArrowUp') ny--; if(e.key === 'ArrowDown') ny++; if(e.key === 'ArrowLeft') nx--; if(e.key === 'ArrowRight') nx++;
                 if(this.map[ny] && this.map[ny][nx] !== 1) { this.pac.x = nx; this.pac.y = ny; }
             });
-            // Touch Swipe
             let xD=null, yD=null;
             this.canvas.addEventListener('touchstart', (e)=>{xD=e.touches[0].clientX;yD=e.touches[0].clientY;});
             this.canvas.addEventListener('touchmove', (e)=>{
                 if(!xD||!yD)return;
                 let xDiff = xD-e.touches[0].clientX; let yDiff = yD-e.touches[0].clientY;
                 let nx=this.pac.x; let ny=this.pac.y;
-                if(Math.abs(xDiff)>Math.abs(yDiff)) { if(xDiff>0)nx--; else nx++; }
-                else { if(yDiff>0)ny--; else ny++; }
+                if(Math.abs(xDiff)>Math.abs(yDiff)) { if(xDiff>0)nx--; else nx++; } else { if(yDiff>0)ny--; else ny++; }
                 if(this.map[ny] && this.map[ny][nx] !== 1) { this.pac.x = nx; this.pac.y = ny; }
                 xD=null; yD=null; e.preventDefault();
             });
@@ -603,61 +513,28 @@
         update: function() {
             if(!this.running) return;
             this.ctx.clearRect(0,0,300,300);
-            
-            // Draw Map
-            for(let y=0; y<10; y++) {
-                for(let x=0; x<15; x++) {
-                    if(this.map[y][x] === 1) {
-                        this.ctx.fillStyle = '#474D4D';
-                        this.ctx.fillRect(x*20, y*20, 20, 20);
-                    } else if(this.map[y][x] === 2) {
-                        this.ctx.fillStyle = '#ccc';
-                        this.ctx.beginPath();
-                        this.ctx.arc(x*20+10, y*20+10, 3, 0, Math.PI*2);
-                        this.ctx.fill();
-                    }
-                }
+            for(let y=0; y<10; y++) for(let x=0; x<15; x++) {
+                if(this.map[y][x] === 1) { this.ctx.fillStyle = '#474D4D'; this.ctx.fillRect(x*20, y*20, 20, 20); }
+                else if(this.map[y][x] === 2) { this.ctx.fillStyle = '#ccc'; this.ctx.beginPath(); this.ctx.arc(x*20+10, y*20+10, 3, 0, Math.PI*2); this.ctx.fill(); }
             }
-            
-            // Eat Dot
-            if(this.map[this.pac.y][this.pac.x] === 2) {
-                this.map[this.pac.y][this.pac.x] = 0;
-                this.score += 10;
-                document.getElementById('pac-score').innerText = this.score;
-            }
-
-            // Draw Pacman (Terra Cotta)
-            this.ctx.fillStyle = '#DD8566';
-            this.ctx.beginPath();
-            this.ctx.arc(this.pac.x*20+10, this.pac.y*20+10, 8, 0.2*Math.PI, 1.8*Math.PI);
-            this.ctx.lineTo(this.pac.x*20+10, this.pac.y*20+10);
-            this.ctx.fill();
-
-            // Move & Draw Ghosts (Random movement)
+            if(this.map[this.pac.y][this.pac.x] === 2) { this.map[this.pac.y][this.pac.x] = 0; this.score += 10; document.getElementById('pac-score').innerText = this.score; }
+            this.ctx.fillStyle = '#DD8566'; this.ctx.beginPath(); this.ctx.arc(this.pac.x*20+10, this.pac.y*20+10, 8, 0.2*Math.PI, 1.8*Math.PI); this.ctx.lineTo(this.pac.x*20+10, this.pac.y*20+10); this.ctx.fill();
             this.ghosts.forEach(g => {
                 let moves = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
                 let validMoves = moves.filter(m => this.map[g.y+m.y] && this.map[g.y+m.y][g.x+m.x] !== 1);
-                if(validMoves.length > 0) {
-                    let m = validMoves[Math.floor(Math.random()*validMoves.length)];
-                    g.x += m.x; g.y += m.y;
-                }
-                
-                this.ctx.fillStyle = g.color;
-                this.ctx.fillRect(g.x*20+2, g.y*20+2, 16, 16);
-
-                if(g.x === this.pac.x && g.y === this.pac.y) {
-                    this.stop();
-                    Suite.showModal("Game Over", "Score: "+this.score);
-                }
+                if(validMoves.length > 0) { let m = validMoves[Math.floor(Math.random()*validMoves.length)]; g.x += m.x; g.y += m.y; }
+                this.ctx.fillStyle = g.color; this.ctx.fillRect(g.x*20+2, g.y*20+2, 16, 16);
+                if(g.x === this.pac.x && g.y === this.pac.y) { this.stop(); Suite.showModal("Game Over", "Score: "+this.score); }
             });
         }
     };
 
-    // --- 5. TIC TAC TOE SUITE (Refactored for Module) ---
+    // --- 5. TIC TAC TOE SUITE ---
     const TTT = {
         mode: null, variant: null, peer: null, conn: null,
         board: [], turn: 'X', myPlayer: 'X', active: false,
-        ultMacro: [], activeSubGrid: -1, scores: {p1:0, p2:0},
+        ultMacro: [], activeSubGrid: -1, scores: {p1:0, p2:0, draw:0},
+        animationsEnabled: true, nextStarter: 'X', currentStarter: 'X',
         
         showMenu: () => {
             document.getElementById('ttt-menu').style.display='block';
@@ -678,23 +555,31 @@
             TTT.initBoard();
         },
         initBoard: () => {
-            TTT.board = []; TTT.active = true; TTT.turn = 'X'; TTT.ultMacro = Array(9).fill(null);
+            TTT.active = true;
+            TTT.turn = TTT.nextStarter; TTT.currentStarter = TTT.nextStarter;
+            TTT.ultMacro = Array(9).fill(null); TTT.activeSubGrid = -1;
+            
+            document.getElementById('win-line-svg').innerHTML = '';
+            const b3 = document.getElementById('board-3d'); if(b3) b3.classList.remove('stacked');
             document.getElementById('ttt-restart').style.display = 'none';
+            
+            document.getElementById('ttt-turn').innerText = `Turn: ${TTT.turn}`;
             const con = document.getElementById('ttt-board-container'); con.innerHTML = '';
             
             if(TTT.variant === 'normal') {
                 TTT.board = Array(9).fill(null);
                 const g = document.createElement('div'); g.id='board-normal';
-                for(let i=0;i<9;i++) g.appendChild(TTT.cell(i));
-                con.appendChild(g);
+                for(let i=0;i<9;i++) g.appendChild(TTT.cell(i)); con.appendChild(g);
             }
             if(TTT.variant === '3d') {
                 TTT.board = Array(27).fill(null);
                 const w = document.createElement('div'); w.id='board-3d';
                 for(let z=0;z<3;z++){
+                    const lb = document.createElement('div'); lb.className='level-container';
+                    const lbl = document.createElement('div'); lbl.className='layer-label'; lbl.innerText=`Level ${z+1}`; lb.appendChild(lbl);
                     const l = document.createElement('div'); l.className='layer-3d';
                     for(let i=0;i<9;i++) l.appendChild(TTT.cell(z*9+i));
-                    w.appendChild(l);
+                    lb.appendChild(l); w.appendChild(lb);
                 }
                 con.appendChild(w);
             }
@@ -703,44 +588,43 @@
                 const g = document.createElement('div'); g.id='board-ultimate';
                 for(let i=0;i<9;i++){
                     const s = document.createElement('div'); s.className='sub-grid active-zone'; s.id=`sub-${i}`;
-                    for(let j=0;j<9;j++) s.appendChild(TTT.cell(i*9+j));
-                    g.appendChild(s);
+                    for(let j=0;j<9;j++) s.appendChild(TTT.cell(i*9+j)); g.appendChild(s);
                 }
                 con.appendChild(g);
             }
+            if(TTT.mode==='bot' && TTT.turn==='O') setTimeout(TTT.botMove, 800);
         },
         cell: (idx) => {
             const c = document.createElement('div'); c.className='ttt-cell';
-            c.dataset.idx = idx; c.onclick = () => TTT.click(idx);
-            return c;
+            c.dataset.idx = idx; c.onclick = () => TTT.click(idx); return c;
         },
         click: (idx) => {
             if(!TTT.active || (TTT.mode!=='local' && TTT.turn!==TTT.myPlayer)) return;
             if(TTT.board[idx]) return;
-            // Ult check
             if(TTT.variant==='ultimate'){
                 const s = Math.floor(idx/9);
                 if(TTT.activeSubGrid!==-1 && s!==TTT.activeSubGrid) return;
                 if(TTT.ultMacro[s]) return;
             }
-            
             TTT.move(idx, TTT.turn);
             if(TTT.mode==='mp' && TTT.conn) TTT.conn.send({type:'move', idx:idx});
             if(TTT.mode==='bot' && TTT.active) setTimeout(TTT.botMove, 500);
         },
         move: (idx, p) => {
             TTT.board[idx] = p;
-            const el = document.querySelector(`.ttt-cell[data-idx='${idx}']`);
+            let el;
+            if(TTT.variant==='normal') el=document.querySelector(`#board-normal .ttt-cell[data-idx='${idx}']`);
+            else if(TTT.variant==='3d') el=document.querySelector(`.layer-3d .ttt-cell[data-idx='${idx}']`);
+            else el=document.querySelector(`#board-ultimate .ttt-cell[data-idx='${idx}']`);
             if(el) { el.innerText = p; el.classList.add(p.toLowerCase()); }
             
-            // Logic
-            let win = false;
-            if(TTT.variant==='normal') win = TTT.checkWin(TTT.board, p);
-            else if(TTT.variant==='3d') win = TTT.checkWin3D(TTT.board, p);
-            else if(TTT.variant==='ultimate') win = TTT.handleUlt(idx, p);
+            let winLine = null;
+            if(TTT.variant==='normal') winLine = TTT.checkWin(TTT.board, p);
+            else if(TTT.variant==='3d') winLine = TTT.checkWin3D(TTT.board, p);
+            else if(TTT.variant==='ultimate') winLine = TTT.handleUlt(idx, p);
 
-            if(win) { TTT.end(p); }
-            else if(TTT.board.every(c=>c)) { TTT.end('draw'); }
+            if(winLine) TTT.end(p, winLine);
+            else if(TTT.board.every(c=>c)) TTT.end('draw', null);
             else {
                 TTT.turn = TTT.turn==='X'?'O':'X';
                 document.getElementById('ttt-turn').innerText = `Turn: ${TTT.turn}`;
@@ -760,48 +644,81 @@
         },
         highlightUlt: () => {
             for(let i=0;i<9;i++){
-                const el = document.getElementById(`sub-${i}`);
-                el.classList.remove('active-zone');
+                const el = document.getElementById(`sub-${i}`); el.classList.remove('active-zone');
                 if(!TTT.ultMacro[i] && (TTT.activeSubGrid===-1 || TTT.activeSubGrid===i)) el.classList.add('active-zone');
             }
         },
         checkWin: (b, p) => {
             const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-            return wins.some(w => w.every(i => b[i]===p));
+            for(let w of wins) if(w.every(i => b[i]===p)) return w;
+            return null;
         },
         checkWin3D: (b, p) => {
-            // Simplified 3D check
-            const check = (s,d) => { for(let i=0;i<3;i++) if(b[s+i*d]!==p) return false; return true; };
-            // Z-axis (pillars)
-            for(let i=0;i<9;i++) if(check(i,9)) return true;
-            // Planes (Rows/Cols on each level)
+            const check = (s,d) => { 
+                let line=[]; for(let i=0;i<3;i++) { if(b[s+i*d]!==p) return null; line.push(s+i*d); } 
+                return line; 
+            };
+            let l;
+            for(let i=0;i<9;i++) if(l=check(i,9)) return l;
             for(let z=0;z<3;z++) {
-                for(let r=0;r<3;r++) if(check(z*9+r*3,1)) return true;
-                for(let c=0;c<3;c++) if(check(z*9+c,3)) return true;
-                if(check(z*9,4)) return true; if(check(z*9+2,2)) return true;
+                for(let r=0;r<3;r++) if(l=check(z*9+r*3,1)) return l;
+                for(let c=0;c<3;c++) if(l=check(z*9+c,3)) return l;
+                if(l=check(z*9,4)) return l; if(l=check(z*9+2,2)) return l;
             }
-            // 3D Diagonals
-            if(check(0,13)) return true; if(check(2,11)) return true;
-            if(check(6,7)) return true; if(check(8,5)) return true;
-            return false;
+            if(l=check(0,13)) return l; if(l=check(2,11)) return l;
+            if(l=check(6,7)) return l; if(l=check(8,5)) return l;
+            return null;
         },
         botMove: () => {
             let moves=[]; TTT.board.forEach((c,i)=>{ if(!c) moves.push(i) });
-            // Simple ult filter
-            if(TTT.variant==='ultimate') moves = moves.filter(i => {
-                const s = Math.floor(i/9); return TTT.activeSubGrid===-1 || TTT.activeSubGrid===s;
-            });
+            if(TTT.variant==='ultimate') moves = moves.filter(i => { const s = Math.floor(i/9); return TTT.activeSubGrid===-1 || TTT.activeSubGrid===s; });
             if(moves.length>0) TTT.move(moves[Math.floor(Math.random()*moves.length)], 'O');
         },
-        end: (res) => {
+        end: (res, winLine) => {
             TTT.active = false;
             document.getElementById('ttt-turn').innerText = res==='draw'?"Draw!":`${res} Wins!`;
-            if(res!=='draw') confetti({ particleCount: 150, spread: 70, colors: ['#DD8566', '#474D4D'] });
-            document.getElementById('ttt-restart').style.display='block';
+            
+            if(res==='draw') {
+                TTT.scores.draw++;
+                TTT.nextStarter = TTT.currentStarter === 'X' ? 'O' : 'X';
+            } else {
+                if(res==='X') TTT.scores.p1++; else TTT.scores.p2++;
+                TTT.nextStarter = res==='X'?'O':'X';
+            }
+            document.getElementById('p1-score').innerText = `P1: ${TTT.scores.p1}`;
+            document.getElementById('p2-score').innerText = `P2: ${TTT.scores.p2}`;
+
+            if(res !== 'draw' && winLine) {
+                if(TTT.animationsEnabled && TTT.variant==='3d') {
+                    document.getElementById('board-3d').classList.add('stacked');
+                    setTimeout(() => { TTT.drawWinLine(winLine); }, 1200);
+                } else if(TTT.animationsEnabled) {
+                    TTT.drawWinLine(winLine);
+                }
+            }
+            setTimeout(() => document.getElementById('ttt-restart').style.display='block', 800);
+        },
+        drawWinLine: (indices) => {
+            if(!indices || indices.length===0 || TTT.variant==='ultimate') return;
+            const startIdx = indices[0]; const endIdx = indices[indices.length-1];
+            
+            const getCenter = (idx) => {
+                let el;
+                if(TTT.variant==='normal') el=document.querySelector(`#board-normal .ttt-cell[data-idx='${idx}']`);
+                else el=document.querySelector(`.layer-3d .ttt-cell[data-idx='${idx}']`);
+                if(!el) return {x:0,y:0};
+                const r = el.getBoundingClientRect();
+                const wr = document.getElementById('game-wrapper').getBoundingClientRect();
+                return { x: r.left+r.width/2 - wr.left, y: r.top+r.height/2 - wr.top };
+            };
+            const s = getCenter(startIdx); const e = getCenter(endIdx);
+            const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+            path.setAttribute('d', `M ${s.x} ${s.y} L ${e.x} ${e.y}`);
+            path.setAttribute('class', 'win-path');
+            document.getElementById('win-line-svg').appendChild(path);
         },
         restart: () => { TTT.initBoard(); },
         
-        // --- MP Logic ---
         host: () => {
             document.getElementById('ttt-mp-setup').style.display='none';
             document.getElementById('ttt-host-wait').style.display='block';
@@ -811,7 +728,7 @@
                 TTT.conn = c; TTT.setupConn();
                 document.getElementById('host-status').innerText = "Connected!";
                 setTimeout(() => {
-                    TTT.conn.send({type:'start', v:'normal'}); // Default to normal for simplicity in this suite
+                    TTT.conn.send({type:'start', v:'normal'}); 
                     TTT.startGame('normal');
                 }, 1000);
             });
@@ -830,8 +747,29 @@
                 if(d.type==='start'){ TTT.myPlayer='O'; TTT.startGame(d.v); }
                 if(d.type==='move') TTT.move(d.idx, TTT.myPlayer==='X'?'O':'X');
             });
+        },
+        copyLink: () => {
+            const id = document.getElementById('host-code').innerText;
+            if(id === 'Generating...') return;
+            const link = window.location.origin + window.location.pathname + '?join=' + id;
+            navigator.clipboard.writeText(link).then(() => {
+                const t = document.getElementById('toast'); t.className = "show";
+                setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+            });
         }
     };
+
+    // Auto-Join Link Logic
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const joinCode = urlParams.get('join');
+        if (joinCode) {
+            Suite.loadGame('ttt');
+            TTT.setup('mp');
+            document.getElementById('join-code').value = joinCode;
+        }
+    });
+    document.getElementById('anim-toggle').addEventListener('change', (e) => TTT.animationsEnabled = e.target.checked);
 </script>
 </body>
 </html>
