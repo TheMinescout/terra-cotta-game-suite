@@ -1,6 +1,8 @@
 # 🎮 Terra Cotta Game Suite & The AI One-Shot Challenge
 
-Welcome to the **Terra Cotta Game Suite**, a collection of classic arcade and logic games bundled into a single, lightweight HTML file. 
+Welcome to the **Terra Cotta Game Suite**, a collection of classic arcade and logic games bundled into a single, lightweight HTML file.
+
+**[✨ Play the Official Version Live](https://theminescout.github.io/tic-tac-toe/index.html)**
 
 This repository serves two purposes:
 1.  To host the **Official Game Suite**, a polished, fully functional web app.
@@ -29,7 +31,7 @@ This is the polished version of the game. It includes bug fixes, UI improvements
 
 ## 🤖 The AI "One-Shot" Experiment
 
-We challenged leading AI models to build this exact application. 
+We challenged leading AI models to build this exact application.
 
 **The Rules:**
 1.  They were given **one specific prompt** (see below).
@@ -37,13 +39,13 @@ We challenged leading AI models to build this exact application.
 3.  **No human intervention** or bug fixing was allowed for these specific files (unless the code was literally unrunnable due to truncation).
 
 ### The Contestants
-You can test the raw, unedited outputs of each AI below to see how they interpreted the prompt and handled the logic:
+Click the links below to **play the raw, unedited outputs** of each AI and see how they interpreted the prompt:
 
-| AI Model | File Link | Notes |
-| :--- | :--- | :--- |
-| **Google Gemini** | [`gemini.html`](./gemini.html) | See how Gemini handled the 3D logic and CSS. |
-| **ChatGPT** | [`gpt.html`](./gpt.html) | Check OpenAI's approach to the single-file constraint. |
-| **Claude** | [`claude.html`](./claude.html) | Observe Anthropic's take on the Terra Cotta aesthetic. |
+| AI Model | Play Live | Source Code | Notes |
+| :--- | :--- | :--- | :--- |
+| **Google Gemini** | [**Play gemini.html**](https://theminescout.github.io/tic-tac-toe/gemini.html) | [View Code](./gemini.html) | See how Gemini handled the 3D logic and CSS. |
+| **ChatGPT** | [**Play gpt.html**](https://theminescout.github.io/tic-tac-toe/gpt.html) | [View Code](./gpt.html) | Check OpenAI's approach to the single-file constraint. |
+| **Claude** | [**Play claude.html**](https://theminescout.github.io/tic-tac-toe/claude.html) | [View Code](./claude.html) | Observe Anthropic's take on the Terra Cotta aesthetic. |
 
 ---
 
@@ -67,15 +69,13 @@ The following prompt was given to every AI model. It describes the design system
 ## 🚀 How to Run
 Since this is a single-file application, you don't need to install Node.js, Python, or any dependencies.
 
-1.  **Download** the repository (or just the `.html` file you want to play).
-2.  **Open** the file in any modern web browser (Chrome, Edge, Firefox, Safari).
-3.  **For Multiplayer:** PeerJS requires a secure context or localhost. To play multiplayer with friends over the internet, we recommend hosting this on **GitHub Pages**.
+1.  **Download** the repository.
+2.  **Open** `index.html` in any modern web browser (Chrome, Edge, Firefox, Safari).
+3.  **For Multiplayer:** PeerJS requires a secure context (HTTPS) or localhost. To play multiplayer with friends over the internet, we recommend hosting this on **GitHub Pages**.
 
-### Enabling GitHub Pages
-1.  Go to `Settings` in your repository.
-2.  Click `Pages` on the left sidebar.
-3.  Under `Source`, select `Deploy from a branch` and choose `main` (or `master`).
-4.  Your game will be live at `https://<your-username>.github.io/<repo-name>/`.
+### Deployment Status
+This project is deployed and live at:
+**https://theminescout.github.io/tic-tac-toe/**
 
 ---
 
