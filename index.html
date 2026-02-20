@@ -27,7 +27,7 @@
             font-family: 'Roboto', sans-serif; background-color: var(--bg); color: var(--text);
             margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh;
             padding: 20px; box-sizing: border-box; overflow-x: hidden; -webkit-tap-highlight-color: transparent;
-            overscroll-behavior: none; touch-action: pan-x pan-y;
+            overscroll-behavior: none;
         }
 
         h1 { margin: 0 0 20px 0; letter-spacing: -0.5px; font-weight: 900; color: var(--text); text-transform: uppercase; }
@@ -78,6 +78,7 @@
             touch-action: none; 
         }
         .score-display { font-size: 2rem; font-weight: 900; color: var(--primary); margin: 10px 0; font-family: 'Roboto Mono', monospace; }
+        .level-display { font-size: 1rem; color: #999; margin-top: -5px; font-weight: 500; }
         .controls-row { display: flex; gap: 10px; margin-top: 20px; align-items: center; flex-wrap: wrap; justify-content: center; }
 
         /* MINESWEEPER */
@@ -120,14 +121,12 @@
         #board-normal { display: grid; grid-template-columns: repeat(3, 80px); grid-template-rows: repeat(3, 80px); gap: 4px; background: var(--outline); padding: 4px; border-radius: 12px; }
         #board-normal .ttt-cell { font-size: 3rem; }
 
-        /* 3D Board */
         #board-3d { perspective: 1000px; margin-top: 40px; display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; }
         .layer-3d { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; transform: rotateX(60deg) rotateZ(-45deg); margin-bottom: -40px; transition: transform 0.3s ease; background: rgba(255, 255, 255, 0.9); border: 1px solid var(--outline); padding: 6px; border-radius: 6px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); }
         .layer-3d:hover { transform: rotateX(60deg) rotateZ(-45deg) translateZ(15px); z-index: 10; border-color: var(--primary); }
-        #board-3d .ttt-cell { width: 50px; height: 50px; font-size: 1.2rem; border: 1px solid #ccc; background: rgba(245,245,245,0.5); display: flex; align-items: center; justify-content: center; }
+        #board-3d .ttt-cell { width: 50px; height: 50px; font-size: 1.5rem; border: 1px solid #eee; background: rgba(245,245,245,0.5); display: flex; align-items: center; justify-content: center; }
         #board-3d .ttt-cell span { transform: rotateZ(45deg); display:block; }
 
-        /* Ultimate */
         #board-ultimate { display: grid; grid-template-columns: repeat(3, auto); gap: 6px; background: var(--text); padding: 6px; border-radius: 12px; }
         .sub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--outline); padding: 2px; position: relative; }
         .sub-grid.active-zone { background: #FFDBCF; }
@@ -201,6 +200,7 @@
     
     <div id="screen-pacman" class="screen">
         <h1>Pac-Man Lite</h1><div class="score-display" id="pac-score">0</div>
+        <div class="level-display" id="pac-level">Level 1</div>
         <canvas id="pac-canvas" width="300" height="300"></canvas>
         <div class="controls-row"><button class="btn-primary" onclick="PacGame.start()">Restart</button><button class="btn-ai" onclick="Suite.toggleAI()">🤖 Auto-Play</button></div>
         <button class="back-btn" onclick="Suite.goHome()">Exit to Hub</button>
@@ -208,6 +208,7 @@
 
     <div id="screen-breakout" class="screen">
         <h1>Breakout</h1><div class="score-display" id="breakout-score">0</div>
+        <div class="level-display" id="breakout-level">Level 1</div>
         <canvas id="breakout-canvas" width="300" height="400"></canvas>
         <div class="controls-row"><button class="btn-primary" onclick="BreakoutGame.start()">Restart</button><button class="btn-ai" onclick="Suite.toggleAI()">🤖 Auto-Play</button></div>
         <button class="back-btn" onclick="Suite.goHome()">Exit to Hub</button>
@@ -279,12 +280,12 @@
 
     // --- GAME MODULES ---
     
-    // SNAKE (SMART AI)
+    // SNAKE (PERFECT BFS + SURVIVAL AI)
     const SnakeGame = {
-        canvas: document.getElementById('snake-canvas'), ctx: document.getElementById('snake-canvas').getContext('2d'), grid: 15, snake: {}, apple: {}, score: 0, running: false, interval: null, baseSpeed: 100,
-        start: function() { this.snake={x:150,y:150,dx:15,dy:0,cells:[],maxCells:4}; this.apple={x:60,y:60}; this.score=0; this.running=true; document.getElementById('snake-score').innerText=0; this.restartTimer(); this.setupTouch(); },
+        canvas: document.getElementById('snake-canvas'), ctx: document.getElementById('snake-canvas').getContext('2d'), grid: 15, snake: {}, apple: {}, score: 0, running: false, interval: null, baseSpeed: 100, currentSpeed: 100,
+        start: function() { this.snake={x:150,y:150,dx:15,dy:0,cells:[],maxCells:4}; this.apple={x:60,y:60}; this.score=0; this.running=true; this.currentSpeed=100; document.getElementById('snake-score').innerText=0; this.restartTimer(); this.setupTouch(); },
         stop: function() { this.running=false; clearInterval(this.interval); },
-        restartTimer: function() { if(this.interval) clearInterval(this.interval); this.interval=setInterval(()=>this.loop(), this.baseSpeed/Suite.speedMult); },
+        restartTimer: function() { if(this.interval) clearInterval(this.interval); this.interval=setInterval(()=>this.loop(), this.currentSpeed/Suite.speedMult); },
         loop: function() {
             if(!this.running)return;
             if(Suite.aiMode) this.aiMove();
@@ -297,48 +298,95 @@
                 let c = this.snake.cells[i]; this.ctx.fillRect(c.x,c.y,14,14);
                 if(i>0&&c.x===this.snake.cells[0].x&&c.y===this.snake.cells[0].y) {this.stop(); Suite.showModal("Game Over", "Score: "+this.score); return;}
             }
-            if(this.snake.cells[0].x===this.apple.x&&this.snake.cells[0].y===this.apple.y){ this.snake.maxCells++; this.score+=10; document.getElementById('snake-score').innerText=this.score; this.apple.x=Math.floor(Math.random()*20)*15; this.apple.y=Math.floor(Math.random()*20)*15; }
+            if(this.snake.cells[0].x===this.apple.x&&this.snake.cells[0].y===this.apple.y){ 
+                this.snake.maxCells++; this.score+=10; document.getElementById('snake-score').innerText=this.score; 
+                this.apple.x=Math.floor(Math.random()*20)*15; this.apple.y=Math.floor(Math.random()*20)*15;
+                if(this.currentSpeed > 40) { this.currentSpeed -= 2; this.restartTimer(); }
+            }
         },
         handleInput: function(e){ if(e.which===37&&this.snake.dx===0){this.snake.dx=-15;this.snake.dy=0;} else if(e.which===38&&this.snake.dy===0){this.snake.dy=-15;this.snake.dx=0;} else if(e.which===39&&this.snake.dx===0){this.snake.dx=15;this.snake.dy=0;} else if(e.which===40&&this.snake.dy===0){this.snake.dy=15;this.snake.dx=0;} },
+        
+        // --- THE "PERFECT" BFS + TAIL SURVIVAL AI ---
         aiMove: function() {
-            // BFS PATHFINDING
-            let start = {x:this.snake.cells[0].x, y:this.snake.cells[0].y};
-            let q = [{x:start.x, y:start.y, path:[]}];
-            let visited = new Set(); visited.add(start.x+","+start.y);
-            // Treat body as obstacles
-            for(let i=0; i<this.snake.cells.length-1; i++) visited.add(this.snake.cells[i].x+","+this.snake.cells[i].y);
+            const width = 20, height = 20;
+            const toGrid = val => Math.floor(val / 15);
+            let hx = toGrid(this.snake.cells[0].x), hy = toGrid(this.snake.cells[0].y);
+            let ax = toGrid(this.apple.x), ay = toGrid(this.apple.y);
+            let body = this.snake.cells.map(c => ({x: toGrid(c.x), y: toGrid(c.y)}));
+            
+            const isSafe = (x, y, sb) => {
+                if(x<0 || x>=width || y<0 || y>=height) return false;
+                for(let i=0; i<sb.length-1; i++) if(sb[i].x===x && sb[i].y===y) return false;
+                return true;
+            };
 
-            let foundPath = null;
-            // Search limit to prevent lag
-            let steps = 0;
-            while(q.length > 0 && steps < 400) {
-                let curr = q.shift(); steps++;
-                if(curr.x === this.apple.x && curr.y === this.apple.y) { foundPath = curr.path; break; }
+            const bfs = (startX, startY, targetX, targetY, sb) => {
+                let q = [{x: startX, y: startY, path: []}];
+                let visited = Array.from({length: height}, () => Array(width).fill(false));
+                for(let i=0; i<sb.length-1; i++) visited[sb[i].y][sb[i].x] = true;
+                visited[startY][startX] = true;
+                let dirs = [{x:0, y:-1, d:{dx:0, dy:-15}}, {x:0, y:1, d:{dx:0, dy:15}}, {x:-1, y:0, d:{dx:-15, dy:0}}, {x:1, y:0, d:{dx:15, dy:0}}];
                 
-                let neighbors = [{x:curr.x+15,y:curr.y,d:{dx:15,dy:0}}, {x:curr.x-15,y:curr.y,d:{dx:-15,dy:0}}, {x:curr.x,y:curr.y+15,d:{dx:0,dy:15}}, {x:curr.x,y:curr.y-15,d:{dx:0,dy:-15}}];
-                for(let n of neighbors) {
-                    if(n.x>=0 && n.x<300 && n.y>=0 && n.y<300 && !visited.has(n.x+","+n.y)) {
-                        visited.add(n.x+","+n.y);
-                        q.push({x:n.x, y:n.y, path:[...curr.path, n.d]});
+                let steps = 0;
+                while(q.length > 0 && steps < 1000) {
+                    let curr = q.shift(); steps++;
+                    if(curr.x === targetX && curr.y === targetY) return curr.path;
+                    for(let dir of dirs) {
+                        let nx = curr.x + dir.x, ny = curr.y + dir.y;
+                        if(nx>=0 && nx<width && ny>=0 && ny<height && !visited[ny][nx]) {
+                            visited[ny][nx] = true;
+                            q.push({x: nx, y: ny, path: [...curr.path, dir.d]});
+                        }
+                    }
+                }
+                return null;
+            };
+
+            let safeMove = null;
+            
+            // 1. Path to Apple
+            let pathToApple = bfs(hx, hy, ax, ay, body);
+
+            // 2. Check if eating the apple is safe (Can we reach our tail after?)
+            if (pathToApple && pathToApple.length > 0) {
+                let vBody = [...body];
+                for(let i=0; i<pathToApple.length; i++) {
+                    vBody.unshift({x: vBody[0].x + Math.sign(pathToApple[i].dx), y: vBody[0].y + Math.sign(pathToApple[i].dy)});
+                    if(i !== pathToApple.length - 1) vBody.pop();
+                }
+                let vTail = vBody[vBody.length-1];
+                if (vBody.length < 5 || bfs(vBody[0].x, vBody[0].y, vTail.x, vTail.y, vBody)) {
+                    safeMove = pathToApple[0];
+                }
+            }
+
+            // 3. Stalling Tactics (Follow Tail)
+            if (!safeMove) {
+                let dirs = [{x:0, y:-1, d:{dx:0, dy:-15}}, {x:0, y:1, d:{dx:0, dy:15}}, {x:-1, y:0, d:{dx:-15, dy:0}}, {x:1, y:0, d:{dx:15, dy:0}}];
+                let bestDist = -1;
+                for(let dir of dirs) {
+                    let nx = hx + dir.x, ny = hy + dir.y;
+                    if (isSafe(nx, ny, body)) {
+                        let vBody = [{x:nx, y:ny}, ...body.slice(0, body.length - 1)];
+                        let vTail = vBody[vBody.length-1];
+                        if (bfs(nx, ny, vTail.x, vTail.y, vBody)) {
+                            let distToApple = Math.abs(nx - ax) + Math.abs(ny - ay);
+                            if (distToApple > bestDist) { bestDist = distToApple; safeMove = dir.d; }
+                        }
                     }
                 }
             }
 
-            if(foundPath && foundPath.length > 0) {
-                // Check if taking this path kills us (Tail Check) - Simplified: Assume safe if path found
-                this.snake.dx = foundPath[0].dx; this.snake.dy = foundPath[0].dy;
-            } else {
-                // SURVIVAL MODE: Pick any safe neighbor
-                let moves = [{dx:15,dy:0}, {dx:-15,dy:0}, {dx:0,dy:15}, {dx:0,dy:-15}];
-                // Sort moves to prefer open space (simple heuristic)
-                for(let m of moves) {
-                    let nx=this.snake.x+m.dx, ny=this.snake.y+m.dy;
-                    let hitBody = this.snake.cells.some(c=>c.x===nx && c.y===ny);
-                    if(nx>=0 && nx<300 && ny>=0 && ny<300 && !hitBody) {
-                        this.snake.dx=m.dx; this.snake.dy=m.dy; break;
-                    }
+            // 4. Panic Mode (Any safe square)
+            if (!safeMove) {
+                let dirs = [{x:0, y:-1, d:{dx:0, dy:-15}}, {x:0, y:1, d:{dx:0, dy:15}}, {x:-1, y:0, d:{dx:-15, dy:0}}, {x:1, y:0, d:{dx:15, dy:0}}];
+                for(let dir of dirs) {
+                    let nx = hx + dir.x, ny = hy + dir.y;
+                    if (isSafe(nx, ny, body)) { safeMove = dir.d; break; }
                 }
             }
+
+            if (safeMove) { this.snake.dx = safeMove.dx; this.snake.dy = safeMove.dy; }
         },
         setupTouch: function(){let tx=0,ty=0; this.canvas.ontouchstart=e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY}; this.canvas.ontouchmove=e=>{e.preventDefault();}; this.canvas.ontouchend=e=>{const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty; if(Math.abs(dx)>Math.abs(dy)){if(dx>0&&this.snake.dx===0){this.snake.dx=15;this.snake.dy=0;}else if(this.snake.dx===0){this.snake.dx=-15;this.snake.dy=0;}}else{if(dy>0&&this.snake.dy===0){this.snake.dy=15;this.snake.dx=0;}else if(this.snake.dy===0){this.snake.dy=-15;this.snake.dx=0;}}};}
     };
@@ -365,17 +413,22 @@
         draw: function() { this.ctx.clearRect(0,0,600,200); this.ctx.fillStyle='#DD8566'; this.ctx.fillRect(50,150,30,30); this.ctx.beginPath(); this.ctx.moveTo(0,180); this.ctx.lineTo(600,180); this.ctx.strokeStyle='#474D4D'; this.ctx.stroke(); }
     };
 
-    // PACMAN
+    // PACMAN (Infinite Levels + Speed Up)
     const PacGame = {
-        canvas: document.getElementById('pac-canvas'), ctx: document.getElementById('pac-canvas').getContext('2d'), grid: 16, pac: {}, dir: {}, nextDir: {}, ghosts: [], map: [], score: 0, running: false, interval: null, mouthOpen: true, baseSpeed: 120,
+        canvas: document.getElementById('pac-canvas'), ctx: document.getElementById('pac-canvas').getContext('2d'), grid: 16, pac: {}, dir: {}, nextDir: {}, ghosts: [], map: [], score: 0, running: false, interval: null, mouthOpen: true, baseSpeed: 120, level: 1,
         masterMap: [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],[1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],[1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,0,1],[1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],[1,1,1,1,0,1,1,1,2,1,2,1,1,1,0,1,1,1,1],[1,1,1,1,0,1,2,2,2,2,2,2,2,1,0,1,1,1,1],[1,0,0,0,0,1,2,1,1,2,1,1,2,1,0,0,0,0,1],[1,1,1,1,0,1,2,1,2,2,2,1,2,1,0,1,1,1,1],[1,1,1,1,0,1,2,1,1,1,1,1,2,1,0,1,1,1,1],[1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],[1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],[1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1],[1,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,1],[1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],
         start: function() {
-            this.pac={x:9,y:14}; this.dir={x:0,y:0}; this.nextDir={x:0,y:0}; this.score=0; this.running=true;
-            document.getElementById('pac-score').innerText = '0';
+            this.level=1; this.baseSpeed=120; this.score=0; this.resetLevel();
+            this.setupTouch();
+        },
+        resetLevel: function() {
+            this.pac={x:9,y:14}; this.dir={x:0,y:0}; this.nextDir={x:0,y:0};
+            document.getElementById('pac-score').innerText = this.score;
+            document.getElementById('pac-level').innerText = "Level " + this.level;
             this.map = JSON.parse(JSON.stringify(this.masterMap));
             this.ghosts = [{x:8,y:8,c:'#FF0000',t:0,d:{x:0,y:0}}, {x:9,y:8,c:'#FFB8FF',t:1,d:{x:0,y:0}}, {x:10,y:8,c:'#00FFFF',t:2,d:{x:0,y:0}}];
+            this.running=true;
             this.restartTimer();
-            this.setupTouch();
         },
         stop: function() { this.running = false; clearInterval(this.interval); },
         restartTimer: function() { if(this.interval) clearInterval(this.interval); this.interval = setInterval(() => this.update(), this.baseSpeed/Suite.speedMult); },
@@ -393,10 +446,15 @@
             let nx=this.pac.x+this.dir.x; let ny=this.pac.y+this.dir.y;
             if(nx<0) nx=this.map[0].length-1; if(nx>=this.map[0].length) nx=0;
             if(this.isValid(nx,ny)) { this.pac.x=nx; this.pac.y=ny; this.mouthOpen=!this.mouthOpen; }
-            if(this.map[this.pac.y][this.pac.x]===0) { this.map[this.pac.y][this.pac.x]=2; this.score+=10; document.getElementById('pac-score').innerText=this.score; if(!this.map.some(r=>r.includes(0))) this.end(true); }
+            if(this.map[this.pac.y][this.pac.x]===0) { this.map[this.pac.y][this.pac.x]=2; this.score+=10; document.getElementById('pac-score').innerText=this.score; if(!this.map.some(r=>r.includes(0))) this.levelUp(); }
             this.ghosts.forEach(g=>this.moveGhost(g));
             this.ghosts.forEach(g=>{ if(g.x===this.pac.x && g.y===this.pac.y) this.end(false); });
             this.draw();
+        },
+        levelUp: function() {
+            this.level++;
+            if(this.baseSpeed > 60) this.baseSpeed -= 10;
+            this.resetLevel();
         },
         moveGhost: function(g) {
             const dirs=[{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
@@ -423,17 +481,27 @@
         setupTouch: function(){let tx=0,ty=0; this.canvas.ontouchstart=e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY}; this.canvas.ontouchmove=e=>{e.preventDefault();}; this.canvas.ontouchend=e=>{const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty; if(Math.abs(dx)>Math.abs(dy))this.nextDir=dx>0?{x:1,y:0}:{x:-1,y:0}; else this.nextDir=dy>0?{x:0,y:1}:{x:0,y:-1};};}
     };
 
-    // BREAKOUT
+    // BREAKOUT (SMART PREDICTION + LEVELS)
     const BreakoutGame = {
-        c: document.getElementById('breakout-canvas'), ctx: document.getElementById('breakout-canvas').getContext('2d'), ball: {}, paddle: {}, bricks: [], running:false, score:0, interval:null, baseSpeed: 16,
+        c: document.getElementById('breakout-canvas'), ctx: document.getElementById('breakout-canvas').getContext('2d'), ball: {}, paddle: {}, bricks: [], running:false, score:0, interval:null, baseSpeed: 16, level: 1,
         start: function() {
-            this.ball={x:150, y:200, dx:3, dy:-3, r:5}; this.paddle={x:125, w:60, h:10}; this.score=0; this.running=true; document.getElementById('breakout-score').innerText='0'; this.bricks=[]; for(let c=0; c<5; c++) for(let r=0; r<4; r++) this.bricks.push({x:c*55+15, y:r*20+30, status:1});
-            this.restartTimer();
+            this.score=0; this.level=1; this.baseSpeed=16; this.running=true;
+            document.getElementById('breakout-score').innerText='0'; 
+            this.resetLevel();
             this.c.onmousemove = e => { const r = this.c.getBoundingClientRect(); this.paddle.x = e.clientX - r.left - this.paddle.w/2; };
             this.c.ontouchmove = e => { e.preventDefault(); const r = this.c.getBoundingClientRect(); this.paddle.x = e.touches[0].clientX - r.left - this.paddle.w/2; };
         },
+        resetLevel: function() {
+            this.ball={x:150, y:200, dx:3, dy:-3, r:5}; this.paddle={x:125, w:60, h:10}; 
+            document.getElementById('breakout-level').innerText = "Level " + this.level;
+            this.initBricks();
+            this.restartTimer();
+        },
         stop: function() { this.running=false; clearInterval(this.interval); },
         restartTimer: function() { if(this.interval) clearInterval(this.interval); this.interval=setInterval(()=>this.update(), this.baseSpeed/Suite.speedMult); },
+        initBricks: function() {
+            this.bricks=[]; for(let c=0; c<5; c++) for(let r=0; r<4; r++) this.bricks.push({x:c*55+15, y:r*20+30, status:1});
+        },
         update: function() {
             if(!this.running) return; this.ctx.clearRect(0,0,300,400);
             if(Suite.aiMode && this.ball.dy > 0) {
@@ -447,13 +515,18 @@
             else if(this.ball.y>400) { this.stop(); Suite.showModal("Game Over", `Score: ${this.score}`); }
             if(this.ball.y>380 && this.ball.x>this.paddle.x && this.ball.x<this.paddle.x+this.paddle.w) this.ball.dy=-Math.abs(this.ball.dy);
             this.bricks.forEach(b=>{ if(b.status===1 && this.ball.x>b.x && this.ball.x<b.x+50 && this.ball.y>b.y && this.ball.y<b.y+15) { this.ball.dy=-this.ball.dy; b.status=0; this.score+=10; document.getElementById('breakout-score').innerText=this.score; } });
+            
+            if(this.bricks.every(br=>br.status===0)) {
+                this.level++; if(this.baseSpeed > 8) this.baseSpeed -= 2; this.resetLevel();
+            }
+
             this.bricks.forEach(b=>{ if(b.status===1) { this.ctx.fillStyle='#DD8566'; this.ctx.fillRect(b.x,b.y,50,15); } });
             this.ctx.fillStyle='#474D4D'; this.ctx.beginPath(); this.ctx.arc(this.ball.x, this.ball.y, this.ball.r, 0, 6.28); this.ctx.fill();
             this.ctx.fillRect(this.paddle.x, 380, this.paddle.w, this.paddle.h);
         }
     };
 
-    // 2048 - 1-PLY AI & FIXED CONTROLS
+    // 2048 - 1-PLY AI
     const Game2048 = {
         grid: [], score: 0,
         start: function() { this.grid = Array(16).fill(0); this.score=0; this.addNew(); this.addNew(); this.draw(); 
@@ -469,107 +542,45 @@
             const el = document.getElementById('grid-2048'); el.innerHTML=''; document.getElementById('2048-score').innerText = this.score;
             this.grid.forEach(v => { const t = document.createElement('div'); t.className='tile-2048'; if(v>0) { t.dataset.val=v; t.innerText=v; } el.appendChild(t); });
         },
-        // 0:Left, 1:Down, 2:Right, 3:Up
         move: function(dir) {
             const simulate = (currGrid, d) => {
                 let tempGrid = [...currGrid]; let earned = 0; let moved = false;
                 const rot = (n) => { const ng = Array(16).fill(0); for(let i=0; i<4; i++) for(let j=0; j<4; j++) if(n===1) ng[j*4+(3-i)] = tempGrid[i*4+j]; else ng[i*4+j] = tempGrid[i*4+j]; tempGrid = ng; };
-                // Align to Left
-                // For Left(0), rot 0. For Down(1), rot 1 (makes down face left?). Wait.
-                // Standard Rotate: 90 deg CW.
-                // Left(0) -> No Rot.
-                // Down(1) -> Rot 1 (Rows become cols reversed). Left logic works on it?
-                // Visual:
-                // [1 2]  Rot 1 -> [3 1]
-                // [3 4]           [4 2]
-                // Sliding Left on Rot 1 is actually Sliding Up on original.
-                // Correction: 
-                // To slide Left: Rot 0
-                // To slide Down: Rot 3? (3x90 = 270). Left becomes Down.
-                // To slide Right: Rot 2.
-                // To slide Up: Rot 1.
-                
-                // Let's use strict mapping for rotation to force "Slide Left" logic:
-                // Wanted: Left(0). Rotate: 0.
-                // Wanted: Down(1). Rotate: 3. (Top becomes right, Right becomes bottom... wait)
-                
-                // Simpler: 
-                // 0 (Left): 0 rot
-                // 1 (Down): 3 rot (270 deg) -> top row is now right col? No.
-                // 1 (Down): 1 rot? (90 deg). Top row becomes right column. Slide left = Slide Up originally? No.
-                
-                // Working Mapping:
-                // 0 (Left): 0
-                // 1 (Down): 3
-                // 2 (Right): 2
-                // 3 (Up): 1
-                // Wait, typically: 0=Left, 1=Up, 2=Right, 3=Down is standard array.
-                // My input keys: Left=0, Down=1, Right=2, Up=3.
-                
-                // Let's stick to the mapping that works for standard grid logic:
-                // 0(Left) -> 0 rot
-                // 1(Down) -> 1 rot? No.
-                
-                // Let's just fix it by trial:
-                // Up (3) needs to look like Left. If we rotate 90deg CW (1), Up becomes Right.
-                // If we rotate 270deg (3) CW, Up becomes Left. So Up->3.
-                // Right (2) -> 2.
-                // Down (1) -> 1.
-                
-                let rotations = [0, 1, 2, 3]; // Map dir to rotations needed to make it "Left"
-                // 0(L) -> 0.
-                // 1(D) -> 1 (90 CW). Now Down is Left.
-                // 2(R) -> 2.
-                // 3(U) -> 3.
-                
+                let rotations = [0, 1, 2, 3];
                 for(let i=0; i<rotations[dir]; i++) rot(1);
-                
                 for(let i=0; i<4; i++) {
                     let row = tempGrid.slice(i*4, i*4+4).filter(v=>v);
                     for(let j=0; j<row.length-1; j++) if(row[j]===row[j+1]) { row[j]*=2; earned+=row[j]; row[j+1]=0; }
                     row = row.filter(v=>v); while(row.length<4) row.push(0);
                     for(let j=0; j<4; j++) if(tempGrid[i*4+j] !== row[j]) { tempGrid[i*4+j] = row[j]; moved=true; }
                 }
-                
                 for(let i=0; i<(4-rotations[dir])%4; i++) rot(1);
                 return {grid: tempGrid, moved: moved, score: earned};
             };
-
             let res = simulate(this.grid, dir);
             if(res.moved) { this.grid = res.grid; this.score += res.score; this.addNew(); this.draw(); }
-            
-            // Expose simulate for AI
             this.simulate = simulate; 
         },
         aiMove: function() {
-            // 1-Ply Lookahead
             let bestScore = -1; let bestDir = -1;
-            // Directions 0,1,2,3
             for(let i=0; i<4; i++) {
                 let res = this.simulate(this.grid, i);
                 if(res.moved) {
                     let empties = res.grid.filter(v=>v===0).length;
-                    // Heuristic: Score gained + Weight on empty spaces to keep board alive
                     let h = res.score + (empties * 4); 
                     if(h > bestScore) { bestScore = h; bestDir = i; }
                 }
             }
             if(bestDir !== -1) this.move(bestDir);
-            else { /* Game Over usually */ }
         },
         handleInput: function(e) {
             if(document.getElementById('screen-2048').classList.contains('active')) {
-                // Map Arrow Keys to Dir 0,1,2,3
-                // Left=0, Down=1, Right=2, Up=3
-                if(e.key==='ArrowLeft') this.move(0); 
-                else if(e.key==='ArrowDown') this.move(1); 
-                else if(e.key==='ArrowRight') this.move(2); 
-                else if(e.key==='ArrowUp') this.move(3);
+                if(e.key==='ArrowLeft') this.move(0); else if(e.key==='ArrowDown') this.move(1); else if(e.key==='ArrowRight') this.move(2); else if(e.key==='ArrowUp') this.move(3);
             }
         }
     };
 
-    // PONG (SMART AI)
+    // PONG (SMART AI + RALLY SPEED UP)
     const PongGame = {
         c: document.getElementById('pong-canvas'), ctx: document.getElementById('pong-canvas').getContext('2d'), ball: {}, p1: {}, p2: {}, score: [0,0], running: false, interval: null, baseSpeed: 16,
         start: function() {
@@ -600,18 +611,20 @@
             this.ball.x+=this.ball.dx; this.ball.y+=this.ball.dy;
             if(this.ball.x<0 || this.ball.x>300) this.ball.dx=-this.ball.dx;
             
-            if(this.ball.y>370 && this.ball.x>this.p1.x && this.ball.x<this.p1.x+40) this.ball.dy = -Math.abs(this.ball.dy);
-            if(this.ball.y<30 && this.ball.x>this.p2.x && this.ball.x<this.p2.x+40) this.ball.dy = Math.abs(this.ball.dy);
+            if(this.ball.y>370 && this.ball.x>this.p1.x && this.ball.x<this.p1.x+40) { this.ball.dy = -Math.abs(this.ball.dy); this.ball.dx *= 1.05; this.ball.dy *= 1.05; }
+            if(this.ball.y<30 && this.ball.x>this.p2.x && this.ball.x<this.p2.x+40) { this.ball.dy = Math.abs(this.ball.dy); this.ball.dx *= 1.05; this.ball.dy *= 1.05; }
+            
             if(this.ball.y<0) { this.score[0]++; this.resetBall(); } if(this.ball.y>400) { this.score[1]++; this.resetBall(); }
             document.getElementById('pong-score').innerText = `${this.score[0]} - ${this.score[1]}`;
             if(this.score[0]>=5 || this.score[1]>=5) { this.stop(); Suite.showModal(this.score[0]>this.score[1]?"You Won!":"You Lost!", ""); }
+            
             this.ctx.fillStyle='#DD8566'; this.ctx.fillRect(this.p1.x, this.p1.y, this.p1.w, this.p1.h);
             this.ctx.fillStyle='#474D4D'; this.ctx.fillRect(this.p2.x, this.p2.y, this.p2.w, this.p2.h);
             this.ctx.beginPath(); this.ctx.arc(this.ball.x, this.ball.y, this.ball.r, 0, 6.28); this.ctx.fill();
         }
     };
 
-    // MINESWEEPER (Fixed Init)
+    // MINESWEEPER
     const MinesGame = {
         grid: [], rows: 10, cols: 10, mines: 15, gameOver: false,
         init: function(diff) {
@@ -649,7 +662,7 @@
         flag: function(r,c) { if(this.gameOver || this.grid[r][c].revealed) return; const cell = this.grid[r][c]; cell.flagged = !cell.flagged; cell.el.innerText = cell.flagged ? '🚩' : ''; cell.el.classList.toggle('flag'); }
     };
 
-    // TIC TAC TOE (Fixed 3D Logic)
+    // TIC TAC TOE
     const TTT = {
         mode: null, variant: null, peer: null, conn: null, difficulty: 'medium',
         board: [], turn: 'X', myPlayer: 'X', active: false, ultMacro: [], activeSubGrid: -1, scores: {p1:0, p2:0, draw:0}, animationsEnabled: true, nextStarter: 'X', currentStarter: 'X',
