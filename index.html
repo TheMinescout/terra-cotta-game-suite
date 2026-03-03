@@ -86,6 +86,25 @@
         .level-display { font-size: 1rem; color: #999; margin-top: -5px; font-weight: 500; }
         .controls-row { display: flex; gap: 10px; margin-top: 20px; align-items: center; flex-wrap: wrap; justify-content: center; }
 
+        /* QUICK MATCH */
+        #qm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; max-width: 340px; margin-top: 10px; }
+        .qm-card {
+            background: var(--surface); border: 2px solid var(--outline); border-radius: 10px; height: 70px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700;
+            cursor: pointer; transition: 0.2s; user-select: none;
+        }
+        .qm-card.flipped, .qm-card.matched { background: #fff; border-color: var(--primary); }
+        .qm-card.matched { opacity: 0.7; cursor: default; }
+
+        /* QUICK MATH */
+        #math-card {
+            width: 100%; max-width: 320px; background: var(--surface); border-radius: var(--radius-card);
+            padding: 20px; box-sizing: border-box; text-align: center; margin-top: 8px;
+        }
+        #math-question { font-size: 2rem; font-family: 'Roboto Mono', monospace; margin: 0 0 15px; }
+        #math-answer { width: 120px; text-align: center; }
+        #math-feedback { min-height: 22px; margin-top: 12px; font-weight: 700; }
+
         /* MINESWEEPER */
         #ms-board { display: grid; gap: 2px; background: var(--outline); padding: 2px; border-radius: 8px; margin-top: 10px; user-select: none; touch-action: none; }
         .ms-cell { width: 30px; height: 30px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; font-family: 'Roboto Mono'; font-size: 1.2rem; }
@@ -188,6 +207,8 @@
             <div class="hub-card" onclick="Suite.loadGame('2048')"><div class="hub-icon">2</div><div class="hub-title">2048</div></div>
             <div class="hub-card" onclick="Suite.loadGame('pong')"><div class="hub-icon">|</div><div class="hub-title">Pong</div></div>
             <div class="hub-card" onclick="Suite.loadGame('hangman')"><div class="hub-icon">H</div><div class="hub-title">Hangman</div></div>
+            <div class="hub-card" onclick="Suite.loadGame('quickmatch')"><div class="hub-icon">🃏</div><div class="hub-title">Quick Match</div></div>
+            <div class="hub-card" onclick="Suite.loadGame('quickmath')"><div class="hub-icon">➗</div><div class="hub-title">Quick Math</div></div>
         </div>
     </div>
 
@@ -267,6 +288,24 @@
         <button class="back-btn" onclick="Suite.goHome()">Exit to Hub</button>
     </div>
 
+    <div id="screen-quickmatch" class="screen">
+        <h1>Quick Match</h1><div class="score-display" id="qm-score">Moves: 0</div>
+        <div id="qm-grid"></div>
+        <div class="controls-row"><button class="btn-primary" onclick="QuickMatchGame.start()">Restart</button></div>
+        <button class="back-btn" onclick="Suite.goHome()">Exit to Hub</button>
+    </div>
+
+    <div id="screen-quickmath" class="screen">
+        <h1>Quick Math</h1><div class="score-display" id="math-score">Score: 0</div>
+        <div id="math-card">
+            <p id="math-question">0 + 0</p>
+            <input id="math-answer" class="mp-input" type="number" inputmode="numeric" placeholder="Answer" onkeydown="if(event.key==='Enter') QuickMathGame.submit()">
+            <div class="controls-row" style="margin-top: 12px;"><button class="btn-primary" onclick="QuickMathGame.submit()">Submit</button><button onclick="QuickMathGame.next()">Skip</button></div>
+            <div id="math-feedback"></div>
+        </div>
+        <button class="back-btn" onclick="Suite.goHome()">Exit to Hub</button>
+    </div>
+
     <div id="screen-ttt" class="screen">
         <h1>Tic-Tac-Toe</h1>
         <div id="ttt-menu">
@@ -293,6 +332,7 @@
     // --- GLOBAL MANAGER ---
     const Suite = {
         activeGame: null, aiMode: false, speedMult: 1,
+        aiLabel: (isOn) => isOn ? '🤖 Auto-Play: ON' : '🤖 Auto-Play: OFF',
         setSpeed: (val) => { 
             let v = parseInt(val) || 50;
             if (v < 1) v = 1;
@@ -305,13 +345,14 @@
             document.getElementById('screen-hub').classList.add('active');
             if(Suite.activeGame && Suite.activeGame.stop) Suite.activeGame.stop();
             Suite.activeGame = null; Suite.aiMode = false;
-            document.querySelectorAll('.btn-ai').forEach(b => b.classList.remove('on'));
+            Suite.updateAIButtons();
             if(TTT.peer) { TTT.peer.destroy(); TTT.peer = null; }
         },
         loadGame: (id) => {
+            if(Suite.activeGame && Suite.activeGame.stop) Suite.activeGame.stop();
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screen-' + id).classList.add('active');
-            Suite.aiMode = false; document.querySelectorAll('.btn-ai').forEach(b => b.classList.remove('on'));
+            Suite.aiMode = false; Suite.updateAIButtons();
             if(id === 'snake') { Suite.activeGame = SnakeGame; SnakeGame.start(); }
             if(id === 'dino') { Suite.activeGame = DinoGame; DinoGame.start(); }
             if(id === 'pacman') { Suite.activeGame = PacGame; PacGame.start(); }
@@ -321,12 +362,110 @@
             if(id === 'hangman') { Suite.activeGame = HangmanGame; HangmanGame.start(); }
             if(id === 'ttt') { Suite.activeGame = TTT; TTT.showMenu(); }
             if(id === 'mines') { Suite.activeGame = null; MinesGame.init('easy'); }
+            if(id === 'quickmatch') { Suite.activeGame = QuickMatchGame; QuickMatchGame.start(); }
+            if(id === 'quickmath') { Suite.activeGame = QuickMathGame; QuickMathGame.start(); }
+        },
+        updateAIButtons: () => {
+            document.querySelectorAll('.btn-ai').forEach(b => {
+                b.innerText = Suite.aiLabel(Suite.aiMode);
+                b.classList.toggle('on', Suite.aiMode);
+            });
         },
         toggleAI: () => { 
+            if(!Suite.activeGame || !Suite.activeGame.aiMove) {
+                Suite.toast('AI auto-play is not available in this game yet.');
+                return;
+            }
             Suite.aiMode = !Suite.aiMode; 
-            document.querySelectorAll('.btn-ai').forEach(b => Suite.aiMode ? b.classList.add('on') : b.classList.remove('on'));
+            Suite.updateAIButtons();
+            Suite.toast(Suite.aiMode ? 'AI auto-play enabled.' : 'AI auto-play disabled.');
         },
+        toast: (msg) => { const t = document.getElementById('toast'); t.innerText = msg; t.style.visibility='visible'; clearTimeout(Suite.toastTimer); Suite.toastTimer = setTimeout(() => t.style.visibility='hidden', 2200); },
         showModal: (title, msg) => { document.getElementById('modal-title').innerText = title; document.getElementById('modal-msg').innerHTML = msg; document.getElementById('rules-modal').style.display = 'flex'; }
+    };
+
+    // QUICK MATCH
+    const QuickMatchGame = {
+        values: [], open: [], matched: 0, moves: 0,
+        start: function() {
+            const base = ['🍓','🍋','🍉','🍇','🍒','🥝','🍍','🍊'];
+            this.values = [...base, ...base].sort(() => Math.random() - 0.5);
+            this.open = []; this.matched = 0; this.moves = 0;
+            document.getElementById('qm-score').innerText = 'Moves: 0';
+            const grid = document.getElementById('qm-grid');
+            grid.innerHTML = '';
+            this.values.forEach((_, idx) => {
+                const card = document.createElement('button');
+                card.className = 'qm-card';
+                card.innerText = '?';
+                card.onclick = () => this.flip(idx, card);
+                grid.appendChild(card);
+            });
+        },
+        stop: function() {},
+        flip: function(idx, card) {
+            if(this.open.length === 2 || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+            card.classList.add('flipped');
+            card.innerText = this.values[idx];
+            this.open.push({idx, card});
+            if(this.open.length === 2) {
+                this.moves++;
+                document.getElementById('qm-score').innerText = `Moves: ${this.moves}`;
+                const [a, b] = this.open;
+                if(this.values[a.idx] === this.values[b.idx]) {
+                    a.card.classList.add('matched'); b.card.classList.add('matched');
+                    this.open = []; this.matched += 2;
+                    if(this.matched === this.values.length) Suite.showModal('Nice!', `Completed in <b>${this.moves}</b> moves.`);
+                } else {
+                    setTimeout(() => {
+                        [a.card, b.card].forEach(c => { c.classList.remove('flipped'); c.innerText = '?'; });
+                        this.open = [];
+                    }, 500);
+                }
+            }
+        }
+    };
+
+    // QUICK MATH
+    const QuickMathGame = {
+        a: 0, b: 0, op: '+', score: 0,
+        start: function() {
+            this.score = 0;
+            document.getElementById('math-score').innerText = 'Score: 0';
+            document.getElementById('math-feedback').innerText = '';
+            this.next();
+        },
+        stop: function() {},
+        next: function() {
+            const ops = ['+', '-', '×'];
+            this.op = ops[Math.floor(Math.random() * ops.length)];
+            this.a = Math.floor(Math.random() * 20) + 1;
+            this.b = Math.floor(Math.random() * 20) + 1;
+            if(this.op === '-' && this.b > this.a) [this.a, this.b] = [this.b, this.a];
+            document.getElementById('math-question').innerText = `${this.a} ${this.op} ${this.b}`;
+            const input = document.getElementById('math-answer');
+            input.value = '';
+            input.focus();
+        },
+        expected: function() {
+            if(this.op === '+') return this.a + this.b;
+            if(this.op === '-') return this.a - this.b;
+            return this.a * this.b;
+        },
+        submit: function() {
+            const val = parseInt(document.getElementById('math-answer').value, 10);
+            const feedback = document.getElementById('math-feedback');
+            if(val === this.expected()) {
+                this.score++;
+                document.getElementById('math-score').innerText = `Score: ${this.score}`;
+                feedback.style.color = '#2ecc71';
+                feedback.innerText = 'Correct ✅';
+            } else {
+                feedback.style.color = '#e74c3c';
+                feedback.innerText = `Oops — answer was ${this.expected()}.`;
+            }
+            this.next();
+        }
     };
 
     window.addEventListener("keydown", function(e) {
