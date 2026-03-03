@@ -436,7 +436,7 @@
             Suite.toast(Suite.aiMode ? 'AI auto-play enabled.' : 'AI auto-play disabled.');
         },
         toast: (msg) => { const t = document.getElementById('toast'); t.innerText = msg; t.style.visibility='visible'; clearTimeout(Suite.toastTimer); Suite.toastTimer = setTimeout(() => t.style.visibility='hidden', 2200); },
-        showModal: (title, msg) => { document.getElementById('modal-title').innerText = title; document.getElementById('modal-msg').innerHTML = msg; document.getElementById('rules-modal').style.display = 'flex'; }
+        showModal: (title, msg) => { if(document.getElementById('screen-hub').classList.contains('active')) return; document.getElementById('modal-title').innerText = title; document.getElementById('modal-msg').innerHTML = msg; document.getElementById('rules-modal').style.display = 'flex'; }
     };
 
     // QUICK MATCH
@@ -1069,24 +1069,23 @@
             const el = document.getElementById('grid-2048'); el.innerHTML=''; document.getElementById('2048-score').innerText = this.score;
             this.grid.forEach(v => { const t = document.createElement('div'); t.className='tile-2048'; if(v>0) { t.dataset.val=v; t.innerText=v; } el.appendChild(t); });
         },
+        simulate: function(currGrid, dir) {
+            let tempGrid = [...currGrid]; let earned = 0; let moved = false;
+            const rot = (n) => { const ng = Array(16).fill(0); for(let i=0; i<4; i++) for(let j=0; j<4; j++) if(n===1) ng[j*4+(3-i)] = tempGrid[i*4+j]; else ng[i*4+j] = tempGrid[i*4+j]; tempGrid = ng; };
+            let rotations = [0, 1, 2, 3];
+            for(let i=0; i<rotations[dir]; i++) rot(1);
+            for(let i=0; i<4; i++) {
+                let row = tempGrid.slice(i*4, i*4+4).filter(v=>v);
+                for(let j=0; j<row.length-1; j++) if(row[j]===row[j+1]) { row[j]*=2; earned+=row[j]; row[j+1]=0; }
+                row = row.filter(v=>v); while(row.length<4) row.push(0);
+                for(let j=0; j<4; j++) if(tempGrid[i*4+j] !== row[j]) { tempGrid[i*4+j] = row[j]; moved=true; }
+            }
+            for(let i=0; i<(4-rotations[dir])%4; i++) rot(1);
+            return {grid: tempGrid, moved: moved, score: earned};
+        },
         move: function(dir) {
-            const simulate = (currGrid, d) => {
-                let tempGrid = [...currGrid]; let earned = 0; let moved = false;
-                const rot = (n) => { const ng = Array(16).fill(0); for(let i=0; i<4; i++) for(let j=0; j<4; j++) if(n===1) ng[j*4+(3-i)] = tempGrid[i*4+j]; else ng[i*4+j] = tempGrid[i*4+j]; tempGrid = ng; };
-                let rotations = [0, 1, 2, 3];
-                for(let i=0; i<rotations[dir]; i++) rot(1);
-                for(let i=0; i<4; i++) {
-                    let row = tempGrid.slice(i*4, i*4+4).filter(v=>v);
-                    for(let j=0; j<row.length-1; j++) if(row[j]===row[j+1]) { row[j]*=2; earned+=row[j]; row[j+1]=0; }
-                    row = row.filter(v=>v); while(row.length<4) row.push(0);
-                    for(let j=0; j<4; j++) if(tempGrid[i*4+j] !== row[j]) { tempGrid[i*4+j] = row[j]; moved=true; }
-                }
-                for(let i=0; i<(4-rotations[dir])%4; i++) rot(1);
-                return {grid: tempGrid, moved: moved, score: earned};
-            };
-            let res = simulate(this.grid, dir);
+            let res = this.simulate(this.grid, dir);
             if(res.moved) { this.grid = res.grid; this.score += res.score; this.addNew(); this.draw(); }
-            this.simulate = simulate; 
         },
         aiMove: function() {
             let bestScore = -1; let bestDir = -1;
