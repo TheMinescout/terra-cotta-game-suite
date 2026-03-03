@@ -389,6 +389,7 @@
         goHome: () => {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screen-hub').classList.add('active');
+            document.getElementById('rules-modal').style.display = 'none';
             if(Suite.activeGame && Suite.activeGame.stop) Suite.activeGame.stop();
             Suite.activeGame = null; Suite.aiMode = false;
             Suite.updateAIButtons();
@@ -396,6 +397,7 @@
         },
         loadGame: (id) => {
             if(Suite.activeGame && Suite.activeGame.stop) Suite.activeGame.stop();
+            document.getElementById('rules-modal').style.display = 'none';
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screen-' + id).classList.add('active');
             Suite.aiMode = false; Suite.updateAIButtons();
