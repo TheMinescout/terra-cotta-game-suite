@@ -55,6 +55,8 @@
         .back-btn { margin-top: 30px; background: transparent; border: none; color: #999; box-shadow: none; text-decoration: underline; font-weight: 400; }
         .back-btn:hover { background: transparent; color: var(--primary); transform: none; }
 
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 15px 0; }
+
         /* HUB GRID */
         .hub-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 100%; max-width: 500px; }
         .hub-card {
@@ -128,11 +130,13 @@
         #board-normal { display: grid; grid-template-columns: repeat(3, 80px); grid-template-rows: repeat(3, 80px); gap: 4px; background: var(--outline); padding: 4px; border-radius: 12px; }
         #board-normal .ttt-cell { font-size: 3rem; }
 
-        #board-3d { perspective: 1000px; margin-top: 40px; display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; }
-        .layer-3d { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; transform: rotateX(60deg) rotateZ(-45deg); margin-bottom: -40px; transition: transform 0.3s ease; background: rgba(255, 255, 255, 0.9); border: 1px solid var(--outline); padding: 6px; border-radius: 6px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); }
+        #board-3d { perspective: 1000px; margin-top: 40px; display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; transition: 0.4s; }
+        .layer-3d { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; transform: rotateX(60deg) rotateZ(-45deg); margin-bottom: -40px; transition: transform 0.4s ease, margin 0.4s ease; background: rgba(255, 255, 255, 0.9); border: 1px solid var(--outline); padding: 6px; border-radius: 6px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); }
         .layer-3d:hover { transform: rotateX(60deg) rotateZ(-45deg) translateZ(15px); z-index: 10; border-color: var(--primary); }
-        #board-3d .ttt-cell { width: 50px; height: 50px; font-size: 1.5rem; border: 1px solid #eee; background: rgba(245,245,245,0.5); display: flex; align-items: center; justify-content: center; }
-        #board-3d .ttt-cell span { transform: rotateZ(45deg); display:block; }
+        #board-3d.stacked .layer-3d { transform: rotateX(0deg) rotateZ(0deg); margin-bottom: 5px; background: white; border-color: var(--primary); z-index: 5;}
+        #board-3d .ttt-cell { width: 50px; height: 50px; font-size: 1.5rem; border: 1px solid #eee; background: rgba(245,245,245,0.5); display: flex; align-items: center; justify-content: center; transition: 0.4s; }
+        #board-3d .ttt-cell span { transform: rotateZ(45deg); display:block; transition: 0.4s; }
+        #board-3d.stacked .ttt-cell span { transform: rotateZ(0deg); }
 
         #board-ultimate { display: grid; grid-template-columns: repeat(3, auto); gap: 6px; background: var(--text); padding: 6px; border-radius: 12px; }
         .sub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--outline); padding: 2px; position: relative; }
@@ -320,7 +324,7 @@
             if(id === 'pong') { Suite.activeGame = PongGame; PongGame.start(); }
             if(id === 'hangman') { Suite.activeGame = HangmanGame; HangmanGame.start(); }
             if(id === 'ttt') { Suite.activeGame = TTT; TTT.showMenu(); }
-            if(id === 'mines') { Suite.activeGame = null; MinesGame.init('easy'); }
+            if(id === 'mines') { Suite.activeGame = MinesGame; MinesGame.init('easy'); }
         },
         toggleAI: () => { 
             Suite.aiMode = !Suite.aiMode; 
@@ -870,10 +874,10 @@
 
     // MINESWEEPER
     const MinesGame = {
-        grid: [], rows: 10, cols: 10, mines: 15, gameOver: false, firstClick: true,
+        grid: [], rows: 10, cols: 10, mines: 15, gameOver: false, firstClick: true, safeRevealed: 0,
         init: function(diff) {
             this.rows = diff==='hard'?14:10; this.cols = diff==='hard'?14:10; this.mines = diff==='hard'?35:12; 
-            this.gameOver = false; this.firstClick = true;
+            this.gameOver = false; this.firstClick = true; this.safeRevealed = 0;
             const board = document.getElementById('ms-board'); board.style.gridTemplateColumns = `repeat(${this.cols}, 30px)`; board.innerHTML = '';
             this.grid = [];
             for(let r=0; r<this.rows; r++) {
@@ -904,10 +908,24 @@
             if(this.gameOver || this.grid[r][c].flagged || this.grid[r][c].revealed) return;
             if(this.firstClick) { this.firstClick = false; this.placeMines(r,c); }
             const cell = this.grid[r][c]; cell.revealed = true; cell.el.classList.add('revealed');
-            if(cell.mine) { cell.el.classList.add('bomb'); cell.el.innerText = '💣'; this.gameOver = true; setTimeout(() => Suite.showModal("BOOM", "You hit a mine!"), 200); }
-            else {
-                if(cell.neighbors > 0) { cell.el.innerText = cell.neighbors; cell.el.style.color = ['#DD8566','#474D4D','#d35400','#2c3e50'][(cell.neighbors-1)%4]; }
-                else { for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) if(r+i>=0 && r+i<this.rows && c+j>=0 && c+j<this.cols) this.click(r+i, c+j); }
+            
+            if(cell.mine) { 
+                cell.el.classList.add('bomb'); cell.el.innerText = '💣'; this.gameOver = true; 
+                setTimeout(() => Suite.showModal("BOOM", "You hit a mine!"), 200); 
+            } else {
+                this.safeRevealed++;
+                if(cell.neighbors > 0) { 
+                    cell.el.innerText = cell.neighbors; 
+                    cell.el.style.color = ['#DD8566','#474D4D','#d35400','#2c3e50'][(cell.neighbors-1)%4]; 
+                } else { 
+                    for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) if(r+i>=0 && r+i<this.rows && c+j>=0 && c+j<this.cols) this.click(r+i, c+j); 
+                }
+                
+                // Winning logic!
+                if(this.safeRevealed === (this.rows * this.cols) - this.mines) {
+                    this.gameOver = true;
+                    setTimeout(() => Suite.showModal("You Won!", "Area secured!"), 200);
+                }
             }
         },
         flag: function(r,c) { if(this.gameOver || this.grid[r][c].revealed) return; const cell = this.grid[r][c]; cell.flagged = !cell.flagged; cell.el.innerText = cell.flagged ? '🚩' : ''; cell.el.classList.toggle('flag'); }
@@ -1023,7 +1041,7 @@
             TTT.active = false; document.getElementById('ttt-turn').innerText = res==='draw'?"Draw!":`${res} Wins!`;
             if(res==='draw') { TTT.scores.draw++; TTT.nextStarter = TTT.currentStarter === 'X' ? 'O' : 'X'; } else { if(res==='X') TTT.scores.p1++; else TTT.scores.p2++; TTT.nextStarter = res==='X'?'O':'X'; }
             document.getElementById('p1-score').innerText = `P1: ${TTT.scores.p1}`; document.getElementById('p2-score').innerText = `P2: ${TTT.scores.p2}`;
-            if(res !== 'draw' && winLine) { if(TTT.animationsEnabled && TTT.variant==='3d') { document.getElementById('board-3d').classList.add('stacked'); setTimeout(() => { TTT.drawWinLine(winLine); }, 1200); } else if(TTT.animationsEnabled) { TTT.drawWinLine(winLine); } }
+            if(res !== 'draw' && winLine) { if(TTT.animationsEnabled && TTT.variant==='3d') { document.getElementById('board-3d').classList.add('stacked'); setTimeout(() => { TTT.drawWinLine(winLine); }, 400); } else if(TTT.animationsEnabled) { TTT.drawWinLine(winLine); } }
             if (TTT.mode === 'ai-vs-ai') { TTT.aiTimer = setTimeout(() => { if (Suite.activeGame === TTT) TTT.restart(); }, 2000 / Suite.speedMult); } 
             else { setTimeout(() => document.getElementById('ttt-restart').style.display='block', 800); }
         },
