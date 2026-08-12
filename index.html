@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#DD8566">
-    <title>Terra Cotta 16-Game Suite</title>
+    <title>Terra Cotta Arcade — 24 Game Suite</title>
     
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
@@ -133,6 +133,32 @@
 
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; display:none; justify-content:center; align-items:center; }
         .modal { background:white; padding:30px; border-radius:16px; max-width:400px; width:90%; text-align:center; }
+        .new-game-panel { width:100%; display:flex; flex-direction:column; align-items:center; }
+        .game-help { color:#888; font-size:.85rem; text-align:center; max-width:420px; margin:4px 0 8px; line-height:1.45; }
+        .touch-joystick { display:grid; grid-template-columns:repeat(3,56px); grid-template-rows:repeat(3,56px); gap:6px; margin-top:10px; }
+        .touch-joystick button { min-width:0; width:56px; height:56px; padding:0; margin:0; }
+        .touch-joystick .empty { visibility:hidden; }
+        #tetris-canvas,#space-canvas,#asteroids-canvas,#dodge-canvas,#typing-canvas { max-width:100%; }
+        #sudoku-board { display:grid; grid-template-columns:repeat(9,34px); border:3px solid var(--text); margin-top:10px; }
+        .sdk-cell { width:34px; height:34px; box-sizing:border-box; border:1px solid var(--outline); display:flex; align-items:center; justify-content:center; font-weight:700; cursor:pointer; background:var(--bg); font-family:'Roboto Mono',monospace; }
+        .sdk-cell.fixed { background:var(--surface); color:var(--text); cursor:default; }
+        .sdk-cell.selected { background:#FFDBCF; }
+        .sdk-cell.error { background:#f7c7bc; color:#a33; }
+        .sdk-cell.box-right { border-right:2px solid var(--text); }
+        .sdk-cell.box-bottom { border-bottom:2px solid var(--text); }
+        .typing-word { font-family:'Roboto Mono',monospace; font-size:1.6rem; margin:18px 0 8px; min-height:2em; text-align:center; word-break:break-word; }
+        .typing-input { width:min(420px,90vw); padding:12px 14px; border:2px solid var(--outline); border-radius:10px; font-family:'Roboto Mono',monospace; font-size:1.05rem; text-align:center; color:var(--text); }
+        .lights-grid { display:grid; grid-template-columns:repeat(5,52px); gap:6px; margin-top:12px; }
+        .light-cell { width:52px; height:52px; border-radius:10px; border:2px solid var(--outline); background:var(--surface); cursor:pointer; transition:.15s; }
+        .light-cell.on { background:#DD8566; box-shadow:0 0 16px rgba(221,133,102,.45); border-color:#DD8566; }
+        .stat-row { display:flex; gap:24px; flex-wrap:wrap; justify-content:center; color:#777; font-family:'Roboto Mono',monospace; margin:6px 0 10px; }
+        .kbd { font-family:'Roboto Mono',monospace; background:var(--surface); border:1px solid var(--outline); border-radius:6px; padding:2px 6px; }
+        @media (max-width: 600px) {
+            #sudoku-board { grid-template-columns:repeat(9,31px); }
+            .sdk-cell { width:31px; height:31px; font-size:.9rem; }
+            .lights-grid { grid-template-columns:repeat(5,46px); }
+            .light-cell { width:46px; height:46px; }
+        }
         
         @media (max-width: 600px) {
             #board-normal { grid-template-columns: repeat(3, 70px); grid-template-rows: repeat(3, 70px); }
@@ -143,7 +169,7 @@
 <body>
 
     <div id="screen-hub" class="screen active">
-        <h1>Terra Cotta Suite</h1>
+        <h1>Terra Cotta Arcade</h1>
         <div class="speed-control">
             <label style="font-weight: bold; color: var(--text);">AI / Game Speed</label>
             <div class="speed-input-row">
@@ -170,6 +196,14 @@
             <div class="hub-card" onclick="Suite.loadGame('memory')"><div class="hub-icon">🃏</div><div class="hub-title">Memory</div></div>
             <div class="hub-card" onclick="Suite.loadGame('simon')"><div class="hub-icon">🚥</div><div class="hub-title">Simon Says</div></div>
             <div class="hub-card" onclick="Suite.loadGame('whack')"><div class="hub-icon">🔨</div><div class="hub-title">Whack-a-Mole</div></div>
+            <div class="hub-card" onclick="Suite.loadGame('tetris')"><div class="hub-icon">🧩</div><div class="hub-title">Tetris</div></div>
+            <div class="hub-card" onclick="Suite.loadGame('space')"><div class="hub-icon">👾</div><div class="hub-title">Space Invaders</div></div>
+            <div class="hub-card" onclick="Suite.loadGame('asteroids')"><div class="hub-icon">☄️</div><div class="hub-title">Asteroids</div></div>
+            <div class="hub-card" onclick="Suite.loadGame('dodge')"><div class="hub-icon">💥</div><div class="hub-title">Dodge</div></div>
+            <div class="hub-card" onclick="Suite.loadGame('sudoku')"><div class="hub-icon">🔢</div><div class="hub-title">Sudoku</div></div>
+            <div class="hub-card" onclick="Suite.loadGame('word')"><div class="hub-icon">⌨️</div><div class="hub-title">Typing Blitz</div></div>
+            <div class="hub-card" onclick="Suite.loadGame('lights')"><div class="hub-icon">💡</div><div class="hub-title">Lights Out</div></div>
+            <div class="hub-card" onclick="Suite.loadGame('math')"><div class="hub-icon">➗</div><div class="hub-title">Math Sprint</div></div>
         </div>
     </div>
 
@@ -184,7 +218,7 @@
                 <label for="hm-chances" style="font-weight:bold; color:var(--text); margin-bottom: 8px;">Chances: <span id="hm-chances-val" style="color:var(--primary);">6</span></label>
                 <input type="range" id="hm-chances" min="4" max="10" value="6" oninput="document.getElementById('hm-chances-val').innerText = this.value">
             </div>
-            <button class="btn-primary" onclick="HangmanGame.validateWord()" style="margin-top:20px;">Start Game</button>
+            <button class="btn-primary" onclick="HangmanGame.validateWord()" style="margin-top:20px;">Start Game</button><button class="btn-ai" onclick="Suite.toggleAI()">🤖 Auto-Play</button>
         </div>
         <div id="hm-game" style="display:none; flex-direction:column; align-items:center; width:100%;">
             <canvas id="hm-canvas" width="300" height="300"></canvas>
@@ -222,7 +256,7 @@
     // --- HTML INJECTION FOR STANDARD GAMES ---
     const HTML = {
         snake: `<h1>Snake</h1><div class="score-display" id="snake-score">0</div><canvas id="snake-canvas" width="300" height="300"></canvas>`,
-        mines: `<h1>Minesweeper</h1><div class="btn-group"><button onclick="MinesGame.init('easy')">Easy</button><button onclick="MinesGame.init('hard')">Hard</button></div><div id="ms-board"></div>`,
+        mines: `<h1>Minesweeper</h1><div class="btn-group"><button onclick="MinesGame.init('easy')">Easy</button><button onclick="MinesGame.init('hard')">Hard</button><button class="btn-ai" onclick="Suite.toggleAI()">🤖 Auto-Play</button></div><div id="ms-board"></div>`,
         dino: `<h1>Dino Run</h1><div class="score-display" id="dino-score">0</div><canvas id="dino-canvas" width="600" height="200"></canvas>`,
         pacman: `<h1>Pac-Man Lite</h1><div class="score-display" id="pac-score">0</div><canvas id="pac-canvas" width="300" height="300"></canvas>`,
         breakout: `<h1>Breakout</h1><div class="score-display" id="breakout-score">0</div><canvas id="breakout-canvas" width="300" height="400"></canvas>`,
@@ -234,14 +268,28 @@
         flappy: `<h1>Flappy Bird</h1><div class="score-display" id="flappy-score">0</div><canvas id="flappy-canvas" width="300" height="400"></canvas>`,
         memory: `<h1>Memory Match</h1><div class="score-display" id="mem-score">Moves: 0</div><div id="memory-board"></div>`,
         simon: `<h1>Simon Says</h1><div class="score-display" id="simon-score">Level 1</div><div id="simon-board"><div class="simon-btn" id="simon-0" onclick="SimonGame.tap(0)"></div><div class="simon-btn" id="simon-1" onclick="SimonGame.tap(1)"></div><div class="simon-btn" id="simon-2" onclick="SimonGame.tap(2)"></div><div class="simon-btn" id="simon-3" onclick="SimonGame.tap(3)"></div></div>`,
-        whack: `<h1>Whack-a-Mole</h1><div class="score-display" id="whack-score">0</div><div id="whack-board"></div>`
+        whack: `<h1>Whack-a-Mole</h1><div class="score-display" id="whack-score">0</div><div id="whack-board"></div>`,
+        tetris: `<h1>Tetris</h1><div class="score-display" id="tetris-score">0</div><div class="game-help">Arrow keys move • ↑ rotate • ↓ soft drop • Space hard drop</div><canvas id="tetris-canvas" width="240" height="480"></canvas>`,
+        space: `<h1>Space Invaders</h1><div class="score-display" id="space-score">0</div><div class="game-help">Move with A/D or ←/→ • Space to fire</div><canvas id="space-canvas" width="360" height="480"></canvas>`,
+        asteroids: `<h1>Asteroids</h1><div class="score-display" id="asteroids-score">0</div><div class="game-help">A/D rotate • W thrust • Space fire</div><canvas id="asteroids-canvas" width="420" height="420"></canvas>`,
+        dodge: `<h1>Dodge</h1><div class="score-display" id="dodge-score">0</div><div class="game-help">Use ←/→ or A/D. Survive as long as possible.</div><canvas id="dodge-canvas" width="320" height="460"></canvas>`,
+        sudoku: `<h1>Sudoku</h1><div class="score-display" id="sudoku-status">Easy</div><div id="sudoku-board"></div><div class="btn-group"><button onclick="SudokuGame.newPuzzle('easy')">Easy</button><button onclick="SudokuGame.newPuzzle('medium')">Medium</button><button onclick="SudokuGame.newPuzzle('hard')">Hard</button><button onclick="SudokuGame.check()">Check</button></div>`,
+        word: `<h1>Typing Blitz</h1><div class="stat-row"><span id="typing-wpm">WPM: 0</span><span id="typing-acc">Accuracy: 100%</span><span id="typing-time">Time: 30s</span></div><div id="typing-word" class="typing-word"></div><input id="typing-input" class="typing-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Start typing here...">`,
+        lights: `<h1>Lights Out</h1><div class="score-display" id="lights-score">Moves: 0</div><div id="lights-board" class="lights-grid"></div><div class="game-help">Turn every light off. Tapping a tile flips it and its neighbors.</div>`,
+        math: `<h1>Math Sprint</h1><div class="stat-row"><span id="math-score">Score: 0</span><span id="math-time">Time: 30s</span></div><div id="math-question" style="font-size:2.4rem;font-weight:900;margin:20px 0;text-align:center;">Press Start</div><input id="math-input" type="number" class="typing-input" inputmode="numeric" placeholder="Answer"><div class="btn-group"><button class="btn-primary" onclick="MathGame.start()">Start 30s</button></div>`,
     };
 
     const container = document.getElementById('screen-container');
     for(let id in HTML) {
         let div = document.createElement('div'); div.id = 'screen-'+id; div.className = 'screen';
         let inner = HTML[id];
-        if(id !== 'mines') inner += `<div class="controls-row"><button class="btn-primary" onclick="Suite.restartCurrent()">Restart</button><button class="btn-ai" onclick="Suite.toggleAI()">🤖 Auto-Play</button></div>`;
+        if(id !== 'mines') {
+            inner += `<div class="controls-row"><button class="btn-primary" onclick="Suite.restartCurrent()">Restart</button>`;
+            if(!['ttt'].includes(id)) {
+                inner += `<button class="btn-ai" onclick="Suite.toggleAI()">🤖 Auto-Play</button>`;
+            }
+            inner += `</div>`;
+        }
         inner += `<button class="back-btn" onclick="Suite.goHome()">Exit to Hub</button>`;
         div.innerHTML = inner; container.appendChild(div);
     }
@@ -250,11 +298,32 @@
     const Suite = {
         activeGame: null, aiMode: false, speedMult: 1,
         setSpeed: (val) => { let v = parseInt(val)||50; if(v<1)v=1; if(v>9999)v=9999; Suite.speedMult = v/50; if(Suite.activeGame && Suite.activeGame.restartTimer) Suite.activeGame.restartTimer(); },
-        goHome: () => { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('screen-hub').classList.add('active'); if(Suite.activeGame && Suite.activeGame.stop) Suite.activeGame.stop(); Suite.activeGame = null; Suite.aiMode = false; document.querySelectorAll('.btn-ai').forEach(b => b.classList.remove('on')); if(TTT.peer) { TTT.peer.destroy(); TTT.peer = null; } },
-        loadGame: (id) => { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('screen-' + id).classList.add('active'); Suite.aiMode = false; document.querySelectorAll('.btn-ai').forEach(b => b.classList.remove('on')); const map = {'snake':SnakeGame, 'dino':DinoGame, 'pacman':PacGame, 'breakout':BreakoutGame, '2048':Game2048, 'pong':PongGame, 'hangman':HangmanGame, 'reaction':ReactionGame, 'target':TargetGame, 'c4':C4Game, 'flappy':FlappyGame, 'memory':MemoryGame, 'simon':SimonGame, 'whack':WhackGame, 'ttt':TTT, 'mines':MinesGame}; Suite.activeGame = map[id]; if(Suite.activeGame.start) Suite.activeGame.start(); else if(Suite.activeGame.init) Suite.activeGame.init('easy'); else if(Suite.activeGame.showMenu) Suite.activeGame.showMenu(); },
-        toggleAI: () => { Suite.aiMode = !Suite.aiMode; document.querySelectorAll('.btn-ai').forEach(b => Suite.aiMode ? b.classList.add('on') : b.classList.remove('on')); if(Suite.aiMode && Suite.activeGame.aiTrigger) Suite.activeGame.aiTrigger(); },
-        restartCurrent: () => { if(Suite.activeGame && Suite.activeGame.start) Suite.activeGame.start(); },
-        showModal: (title, msg) => { document.getElementById('modal-title').innerText = title; document.getElementById('modal-msg').innerHTML = msg; document.getElementById('rules-modal').style.display = 'flex'; }
+        cleanup: () => { if(Suite.activeGame && Suite.activeGame.stop) Suite.activeGame.stop(); if(typeof TTT !== 'undefined' && TTT.peer) { try{TTT.peer.destroy();}catch(e){} TTT.peer=null; TTT.conn=null; } Suite.activeGame=null; Suite.aiMode=false; document.querySelectorAll('.btn-ai').forEach(b=>b.classList.remove('on')); },
+        goHome: () => { Suite.cleanup(); document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('screen-hub').classList.add('active'); },
+        loadGame: (id) => {
+            Suite.cleanup();
+            document.getElementById('rules-modal').style.display='none';
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            const screen = document.getElementById('screen-' + id);
+            if(!screen) return;
+            screen.classList.add('active');
+            const map = {'snake':SnakeGame,'dino':DinoGame,'pacman':PacGame,'breakout':BreakoutGame,'2048':Game2048,'pong':PongGame,'hangman':HangmanGame,'reaction':ReactionGame,'target':TargetGame,'c4':C4Game,'flappy':FlappyGame,'memory':MemoryGame,'simon':SimonGame,'whack':WhackGame,'ttt':TTT,'mines':MinesGame,'tetris':TetrisGame,'space':SpaceInvadersGame,'asteroids':AsteroidsGame,'dodge':DodgeGame,'sudoku':SudokuGame,'word':TypingGame,'lights':LightsGame,'math':MathGame};
+            Suite.activeGame = map[id];
+            if(!Suite.activeGame) return;
+            if(Suite.activeGame.start) Suite.activeGame.start();
+            else if(Suite.activeGame.init) Suite.activeGame.init('easy');
+            else if(Suite.activeGame.showMenu) Suite.activeGame.showMenu();
+        },
+        toggleAI: () => {
+            Suite.aiMode = !Suite.aiMode;
+            document.querySelectorAll('.btn-ai').forEach(b => Suite.aiMode ? b.classList.add('on') : b.classList.remove('on'));
+            if(Suite.aiMode && Suite.activeGame && Suite.activeGame.aiTrigger) Suite.activeGame.aiTrigger();
+            if(!Suite.aiMode && Suite.activeGame) {
+                if(Suite.activeGame.aiTimer) { clearTimeout(Suite.activeGame.aiTimer); clearInterval(Suite.activeGame.aiTimer); Suite.activeGame.aiTimer=null; }
+            }
+        },
+        restartCurrent: () => { if(!Suite.activeGame) return; if(Suite.activeGame.start) Suite.activeGame.start(); else if(Suite.activeGame.init) Suite.activeGame.init('easy'); },
+        showModal: (title,msg) => { document.getElementById('modal-title').innerText=title; document.getElementById('modal-msg').innerHTML=msg; document.getElementById('rules-modal').style.display='flex'; }
     };
     window.addEventListener("keydown", e => { if([32, 37, 38, 39, 40].includes(e.keyCode) && !document.getElementById('screen-hub').classList.contains('active')) e.preventDefault(); if(Suite.activeGame && Suite.activeGame.handleInput) Suite.activeGame.handleInput(e); });
 
@@ -371,7 +440,7 @@
         },
         handleInput: function(e){ if(e.which===37&&this.snake.dx===0){this.snake.dx=-15;this.snake.dy=0;} else if(e.which===38&&this.snake.dy===0){this.snake.dy=-15;this.snake.dx=0;} else if(e.which===39&&this.snake.dx===0){this.snake.dx=15;this.snake.dy=0;} else if(e.which===40&&this.snake.dy===0){this.snake.dy=15;this.snake.dx=0;} },
         aiMove: function() {
-            const tG = v => Math.floor(v/15); let hx=tG(this.snake.cells[0].x), hy=tG(this.snake.cells[0].y), ax=tG(this.apple.x), ay=tG(this.apple.y);
+            const tG = v => Math.floor(v/15); const head = this.snake.cells[0] || {x:this.snake.x,y:this.snake.y}; let hx=tG(head.x), hy=tG(head.y), ax=tG(this.apple.x), ay=tG(this.apple.y);
             let wlls = this.snake.cells.slice(0,-1).map(c=>({x:tG(c.x),y:tG(c.y)}));
             const sfe = (x,y,w) => x>=0&&x<20&&y>=0&&y<20&&!w.some(wl=>wl.x===x&&wl.y===y);
             const gA = (sx,sy,w) => { if(!sfe(sx,sy,w))return 0; let q=[{x:sx,y:sy}], v=new Set([sx+","+sy]), a=0; while(q.length){let c=q.shift();a++;for(let d of [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}]){let nx=c.x+d.x,ny=c.y+d.y;if(sfe(nx,ny,w)&&!v.has(nx+","+ny)){v.add(nx+","+ny);q.push({x:nx,y:ny});}}} return a; };
@@ -459,7 +528,7 @@
             if(this.ball.x<0 || this.ball.x>300) this.ball.dx=-this.ball.dx; if(this.ball.y<0) this.ball.dy=-this.ball.dy; else if(this.ball.y>400) { this.stop(); Suite.showModal("Game Over", `Score: ${this.score}`); }
             if(this.ball.y+this.ball.r>380 && this.ball.x>this.paddle.x && this.ball.x<this.paddle.x+this.paddle.w) this.ball.dy=-Math.abs(this.ball.dy);
             this.bricks.forEach(b=>{ if(b.status===1 && this.ball.x>b.x && this.ball.x<b.x+50 && this.ball.y>b.y && this.ball.y<b.y+15) { this.ball.dy=-this.ball.dy; b.status=0; this.score+=10; document.getElementById('breakout-score').innerText=this.score; } });
-            if(this.bricks.every(br=>br.status===0)) { this.level++; if(this.baseSpeed > 8) this.baseSpeed -= 2; this.resetLevel(); }
+            if(this.bricks.every(br=>br.status===0)) { this.level++; if(this.baseSpeed > 8) this.baseSpeed -= 2; this.resetLevel(); return; }
             this.bricks.forEach(b=>{ if(b.status===1) { this.ctx.fillStyle='#DD8566'; this.ctx.fillRect(b.x,b.y,50,15); } });
             this.ctx.fillStyle='#474D4D'; this.ctx.beginPath(); this.ctx.arc(this.ball.x, this.ball.y, this.ball.r, 0, 6.28); this.ctx.fill(); this.ctx.fillRect(this.paddle.x, 380, this.paddle.w, this.paddle.h);
         }
@@ -487,28 +556,214 @@
 
     // 14. MINESWEEPER
     const MinesGame = {
-        grid: [], rows: 10, cols: 10, mines: 15, gameOver: false, firstClick: true, safeRevealed: 0,
-        init: function(diff) { this.rows = diff==='hard'?14:10; this.cols = diff==='hard'?14:10; this.mines = diff==='hard'?35:12; this.gameOver = false; this.firstClick = true; this.safeRevealed = 0; const board = document.getElementById('ms-board'); board.style.gridTemplateColumns = `repeat(${this.cols}, 30px)`; board.innerHTML = ''; this.grid = []; for(let r=0; r<this.rows; r++) { let row = []; for(let c=0; c<this.cols; c++) { const el = document.createElement('div'); el.className = 'ms-cell'; el.onclick = () => this.click(r,c); el.oncontextmenu = (e) => { e.preventDefault(); this.flag(r,c); }; let pt; el.ontouchstart=()=>{pt=setTimeout(()=>this.flag(r,c),500);}; el.ontouchend=()=>clearTimeout(pt); board.appendChild(el); row.push({el: el, mine: false, revealed: false, flagged: false, neighbors: 0}); } this.grid.push(row); } },
+        grid: [], rows: 10, cols: 10, mines: 15, gameOver: false, firstClick: true, safeRevealed: 0, aiTimer: null,
+        init: function(diff) { clearInterval(this.aiTimer); this.rows = diff==='hard'?14:10; this.cols = diff==='hard'?14:10; this.mines = diff==='hard'?35:12; this.gameOver = false; this.firstClick = true; this.safeRevealed = 0; const board = document.getElementById('ms-board'); board.style.gridTemplateColumns = `repeat(${this.cols}, 30px)`; board.innerHTML = ''; this.grid = []; for(let r=0; r<this.rows; r++) { let row = []; for(let c=0; c<this.cols; c++) { const el = document.createElement('div'); el.className = 'ms-cell'; el.onclick = () => this.click(r,c); el.oncontextmenu = (e) => { e.preventDefault(); this.flag(r,c); }; let pt; el.ontouchstart=()=>{pt=setTimeout(()=>this.flag(r,c),500);}; el.ontouchend=()=>clearTimeout(pt); board.appendChild(el); row.push({el: el, mine: false, revealed: false, flagged: false, neighbors: 0}); } this.grid.push(row); } },
         placeMines: function(fR, fC) { let p = 0; while(p < this.mines) { let r = Math.floor(Math.random()*this.rows); let c = Math.floor(Math.random()*this.cols); if(!this.grid[r][c].mine && (Math.abs(r-fR) > 1 || Math.abs(c-fC) > 1)) { this.grid[r][c].mine = true; p++; } } for(let r=0; r<this.rows; r++) for(let c=0; c<this.cols; c++) { if(this.grid[r][c].mine) continue; let count = 0; for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) if(r+i>=0 && r+i<this.rows && c+j>=0 && c+j<this.cols && this.grid[r+i][c+j].mine) count++; this.grid[r][c].neighbors = count; } },
         click: function(r,c) { if(this.gameOver || this.grid[r][c].flagged || this.grid[r][c].revealed) return; if(this.firstClick) { this.firstClick = false; this.placeMines(r,c); } const cell = this.grid[r][c]; cell.revealed = true; cell.el.classList.add('revealed'); if(cell.mine) { cell.el.classList.add('bomb'); cell.el.innerText = '💣'; this.gameOver = true; setTimeout(() => Suite.showModal("BOOM", "You hit a mine!"), 200); } else { this.safeRevealed++; if(cell.neighbors > 0) { cell.el.innerText = cell.neighbors; cell.el.style.color = ['#DD8566','#474D4D','#d35400','#2c3e50'][(cell.neighbors-1)%4]; } else { for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) if(r+i>=0 && r+i<this.rows && c+j>=0 && c+j<this.cols) this.click(r+i, c+j); } if(this.safeRevealed === (this.rows * this.cols) - this.mines) { this.gameOver = true; setTimeout(() => Suite.showModal("You Won!", "Area secured!"), 200); } } },
-        flag: function(r,c) { if(this.gameOver || this.grid[r][c].revealed) return; const cell = this.grid[r][c]; cell.flagged = !cell.flagged; cell.el.innerText = cell.flagged ? '🚩' : ''; cell.el.classList.toggle('flag'); }
+        flag: function(r,c) { if(this.gameOver || this.grid[r][c].revealed) return; const cell = this.grid[r][c]; cell.flagged = !cell.flagged; cell.el.innerText = cell.flagged ? '🚩' : ''; cell.el.classList.toggle('flag'); },
+        stop: function(){ clearInterval(this.aiTimer); },
+        aiTrigger: function(){
+            clearInterval(this.aiTimer);
+            if(this.firstClick && this.grid.length) this.click(Math.floor(this.rows/2), Math.floor(this.cols/2));
+            this.aiTimer=setInterval(()=>{
+                if(this.gameOver){clearInterval(this.aiTimer);return;}
+                const safe=[]; for(let r=0;r<this.rows;r++) for(let c=0;c<this.cols;c++) if(!this.grid[r][c].mine && !this.grid[r][c].revealed) safe.push([r,c]);
+                if(!safe.length){clearInterval(this.aiTimer);return;}
+                const batch=safe.slice(0,Math.max(1,Math.floor(5*Suite.speedMult)));
+                batch.forEach(([r,c])=>this.click(r,c));
+            },Math.max(30,220/Suite.speedMult));
+        }
     };
 
     // 15. HANGMAN
     const HangmanGame = {
-        canvas: document.getElementById('hm-canvas'), ctx: null, word: "", guessed: [], mistakes: 0, maxMistakes: 6, running: false,
+        canvas: document.getElementById('hm-canvas'), ctx: null, word: "", guessed: [], mistakes: 0, maxMistakes: 6, running: false, aiTimer: null,
         start: function() { this.running = false; document.getElementById('hm-setup').style.display = 'flex'; document.getElementById('hm-game').style.display = 'none'; document.getElementById('hm-word-input').value = ''; document.getElementById('hm-status').innerText = 'Player 1: Enter a secret word'; if(!this.ctx) this.ctx = this.canvas.getContext('2d'); },
-        stop: function() { this.running = false; },
+        stop: function() { this.running = false; clearInterval(this.aiTimer); },
         validateWord: async function() { let i = document.getElementById('hm-word-input').value.trim().toLowerCase(); let c = parseInt(document.getElementById('hm-chances').value) || 6; if(!i || !/^[a-z]+$/.test(i)) { Suite.showModal("Invalid", "Please enter a word with letters only."); return; } document.getElementById('hm-status').innerText = 'Checking dictionary...'; try { let r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${i}`); if(r.ok) { this.startGame(i, c); } else { document.getElementById('hm-status').innerText = 'Word not found in dictionary!'; } } catch(e) { this.startGame(i, c); } },
         startGame: function(w, c) { this.word = w; this.guessed = []; this.mistakes = 0; this.maxMistakes = c; this.running = true; document.getElementById('hm-setup').style.display = 'none'; document.getElementById('hm-game').style.display = 'flex'; const kb = document.getElementById('hm-keyboard'); kb.innerHTML = ''; "abcdefghijklmnopqrstuvwxyz".split('').forEach(l => { let b = document.createElement('button'); b.className = 'hm-key'; b.innerText = l.toUpperCase(); b.onclick = () => this.guess(l); kb.appendChild(b); }); this.updateUI(); this.draw(); },
         guess: function(l) { if(!this.running || this.guessed.includes(l)) return; this.guessed.push(l); let btns = document.querySelectorAll('.hm-key'); for(let b of btns) { if(b.innerText === l.toUpperCase()) { b.disabled = true; break; } } if(!this.word.includes(l)) this.mistakes++; this.updateUI(); this.draw(); this.checkWin(); },
         handleInput: function(e) { if(!this.running) return; if(/^[a-zA-Z]$/.test(e.key)) { this.guess(e.key.toLowerCase()); } },
         updateUI: function() { let d = this.word.split('').map(l => this.guessed.includes(l) ? l.toUpperCase() : '_').join(' '); document.getElementById('hm-word-display').innerText = d; let w = this.guessed.filter(l => !this.word.includes(l)).map(l => l.toUpperCase()).join(', '); document.getElementById('hm-wrong-display').innerText = w ? "Incorrect: " + w : `Mistakes: ${this.mistakes} / ${this.maxMistakes}`; },
         draw: function() { let c = this.ctx; c.clearRect(0,0,300,300); c.strokeStyle = '#474D4D'; c.lineWidth = 4; c.lineCap = 'round'; c.beginPath(); c.moveTo(50, 280); c.lineTo(250, 280); c.moveTo(100, 280); c.lineTo(100, 20); c.lineTo(200, 20); c.lineTo(200, 50); c.stroke(); if(this.mistakes>=1) { c.beginPath(); c.arc(200, 75, 25, 0, Math.PI*2); c.stroke(); } if(this.mistakes>=2) { c.beginPath(); c.moveTo(200, 100); c.lineTo(200, 180); c.stroke(); } if(this.mistakes>=3) { c.beginPath(); c.moveTo(200, 180); c.lineTo(170, 230); c.stroke(); } if(this.mistakes>=4) { c.beginPath(); c.moveTo(200, 180); c.lineTo(230, 230); c.stroke(); } if(this.mistakes>=5) { c.beginPath(); c.moveTo(200, 120); c.lineTo(170, 160); c.stroke(); } if(this.mistakes>=6) { c.beginPath(); c.moveTo(200, 120); c.lineTo(230, 160); c.stroke(); } if(this.mistakes>=7) { c.beginPath(); c.arc(190, 70, 2, 0, Math.PI*2); c.fillStyle='#474D4D'; c.fill(); } if(this.mistakes>=8) { c.beginPath(); c.arc(210, 70, 2, 0, Math.PI*2); c.fillStyle='#474D4D'; c.fill(); } if(this.mistakes>=9) { c.beginPath(); c.moveTo(190, 85); c.lineTo(210, 85); c.stroke(); } if(this.mistakes>=10) { c.beginPath(); c.moveTo(185, 50); c.lineTo(180, 40); c.moveTo(200, 50); c.lineTo(200, 35); c.moveTo(215, 50); c.lineTo(220, 40); c.stroke(); } },
-        checkWin: function() { let w = this.word.split('').every(l => this.guessed.includes(l)); if(w) { this.running = false; setTimeout(() => Suite.showModal("You Won!", `The word was ${this.word.toUpperCase()}`), 300); } else if(this.mistakes >= this.maxMistakes) { this.running = false; setTimeout(() => Suite.showModal("Game Over", `The word was ${this.word.toUpperCase()}`), 300); } }
+        checkWin: function() { let w = this.word.split('').every(l => this.guessed.includes(l)); if(w) { this.running = false; clearInterval(this.aiTimer); setTimeout(() => Suite.showModal("You Won!", `The word was ${this.word.toUpperCase()}`), 300); } else if(this.mistakes >= this.maxMistakes) { this.running = false; clearInterval(this.aiTimer); setTimeout(() => Suite.showModal("Game Over", `The word was ${this.word.toUpperCase()}`), 300); } },
+        aiTrigger: function(){
+            clearInterval(this.aiTimer);
+            if(!this.running) this.startGame('arcade',6);
+            const letters=[...new Set(this.word.split(''))]; let i=0;
+            this.aiTimer=setInterval(()=>{ if(!this.running){clearInterval(this.aiTimer);return;} if(i>=letters.length){clearInterval(this.aiTimer);return;} this.guess(letters[i++]); },Math.max(40,180/Suite.speedMult));
+        }
     };
 
-    // 16. TIC TAC TOE (MP, AI, Ultimate, 3D)
+
+    // 16. TETRIS
+    const TetrisGame = {
+        c:null, ctx:null, board:[], piece:null, next:null, dropTimer:null, aiTimer:null, fallMs:700, score:0, running:false, gameOver:false,
+        shapes:{
+            I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+            O:[[1,1],[1,1]],
+            T:[[0,1,0],[1,1,1],[0,0,0]],
+            L:[[1,0,0],[1,1,1],[0,0,0]],
+            J:[[0,0,1],[1,1,1],[0,0,0]],
+            S:[[0,1,1],[1,1,0],[0,0,0]],
+            Z:[[1,1,0],[0,1,1],[0,0,0]]
+        },
+        start(){
+            this.c=document.getElementById('tetris-canvas'); this.ctx=this.c.getContext('2d');
+            this.board=Array.from({length:20},()=>Array(10).fill(0)); this.score=0; this.fallMs=700; this.running=true; this.gameOver=false;
+            this.next=this.randomPiece(); this.spawn(); document.getElementById('tetris-score').innerText=0; this.restartTimer();
+        },
+        stop(){this.running=false; clearInterval(this.dropTimer); clearInterval(this.aiTimer);},
+        restartTimer(){clearInterval(this.dropTimer); this.dropTimer=setInterval(()=>this.tick(),Math.max(60,this.fallMs/Suite.speedMult));},
+        randomPiece(){const ks=Object.keys(this.shapes), k=ks[Math.floor(Math.random()*ks.length)]; return {shape:this.shapes[k].map(r=>r.slice()), color:1, x:3,y:0};},
+        spawn(){this.piece=this.next||this.randomPiece(); this.next=this.randomPiece(); this.piece.x=Math.floor((10-this.piece.shape[0].length)/2); this.piece.y=0; if(this.collides(this.piece)){this.finish();} this.draw();},
+        collides(p, ox=0, oy=0, shape=p.shape){
+            for(let y=0;y<shape.length;y++) for(let x=0;x<shape[y].length;x++) if(shape[y][x]){
+                const nx=p.x+x+ox, ny=p.y+y+oy;
+                if(nx<0||nx>=10||ny>=20|| (ny>=0&&this.board[ny][nx])) return true;
+            }
+            return false;
+        },
+        merge(){for(let y=0;y<this.piece.shape.length;y++)for(let x=0;x<this.piece.shape[y].length;x++)if(this.piece.shape[y][x]){let ny=this.piece.y+y,nx=this.piece.x+x;if(ny>=0)this.board[ny][nx]=1;}},
+        clearLines(){let n=0; this.board=this.board.filter(r=>{if(r.every(Boolean)){n++;return false;}return true;}); while(this.board.length<20)this.board.unshift(Array(10).fill(0)); if(n){this.score += [0,100,300,500,800][n]; this.fallMs=Math.max(80,700-Math.floor(this.score/500)*40); this.restartTimer(); document.getElementById('tetris-score').innerText=this.score;}},
+        rotate(){const s=this.piece.shape, rows=s.length, cols=s[0].length, r=Array.from({length:cols},()=>Array(rows).fill(0));for(let y=0;y<rows;y++)for(let x=0;x<cols;x++)r[x][rows-1-y]=s[y][x]; if(!this.collides(this.piece,0,0,r))this.piece.shape=r; this.draw();},
+        move(dx){if(!this.collides(this.piece,dx,0))this.piece.x+=dx; this.draw();},
+        soft(){if(!this.collides(this.piece,0,1))this.piece.y++;else this.lock();this.draw();},
+        hard(){while(!this.collides(this.piece,0,1))this.piece.y++;this.lock();this.draw();},
+        lock(){this.merge();this.clearLines();this.spawn();},
+        tick(){if(this.running)this.soft();},
+        finish(){if(this.gameOver)return;this.gameOver=true;this.stop();Suite.showModal("Game Over",`Score: ${this.score}`);},
+        draw(){
+            if(!this.ctx)return; this.ctx.fillStyle='#f5f5f5';this.ctx.fillRect(0,0,240,480);const cs=24;
+            this.ctx.strokeStyle='#e5e5e5';this.ctx.lineWidth=1;for(let x=0;x<=10;x++){this.ctx.beginPath();this.ctx.moveTo(x*cs,0);this.ctx.lineTo(x*cs,480);this.ctx.stroke();}for(let y=0;y<=20;y++){this.ctx.beginPath();this.ctx.moveTo(0,y*cs);this.ctx.lineTo(240,y*cs);this.ctx.stroke();}
+            const drawCell=(x,y,active=false)=>{this.ctx.fillStyle=active?'#DD8566':'#474D4D';this.ctx.fillRect(x*cs+2,y*cs+2,cs-4,cs-4);};
+            for(let y=0;y<20;y++)for(let x=0;x<10;x++)if(this.board[y][x])drawCell(x,y);
+            if(this.piece)for(let y=0;y<this.piece.shape.length;y++)for(let x=0;x<this.piece.shape[y].length;x++)if(this.piece.shape[y][x])drawCell(this.piece.x+x,this.piece.y+y,true);
+        },
+        handleInput(e){if(!this.running)return;if(e.code==='ArrowLeft')this.move(-1);else if(e.code==='ArrowRight')this.move(1);else if(e.code==='ArrowDown')this.soft();else if(e.code==='ArrowUp')this.rotate();else if(e.code==='Space'){e.preventDefault();this.hard();}},
+        aiTrigger(){ clearInterval(this.aiTimer); this.aiTimer=setInterval(()=>this.aiMove(),Math.max(70,260/Suite.speedMult)); },
+        aiMove(){ if(!this.running||!this.piece)return; if(Math.random()<0.55)this.rotate(); const target=Math.floor(Math.random()*10); let guard=0; while(this.piece.x<target&&guard++<10)this.move(1); guard=0; while(this.piece.x>target&&guard++<10)this.move(-1); this.hard(); }
+    };
+
+    // 17. SPACE INVADERS
+    const SpaceInvadersGame = {
+        c:null,ctx:null,player:{x:165,y:440,w:30,h:16}, bullets:[], enemies:[], enemyBullets:[], dir:1, frame:0,score:0,running:false,interval:null,aiTimer:null,enemyStep:1,
+        start(){this.c=document.getElementById('space-canvas');this.ctx=this.c.getContext('2d');this.player={x:165,y:440,w:30,h:16};this.bullets=[];this.enemyBullets=[];this.enemies=[];for(let r=0;r<4;r++)for(let col=0;col<9;col++)this.enemies.push({x:30+col*36,y:40+r*26,w:22,h:16});this.dir=1;this.frame=0;this.score=0;this.running=true;document.getElementById('space-score').innerText=0;this.restartTimer();},
+        stop(){this.running=false;clearInterval(this.interval);clearInterval(this.aiTimer);},
+        restartTimer(){clearInterval(this.interval);this.interval=setInterval(()=>this.loop(),30/Math.max(.25,Suite.speedMult));},
+        move(dx){this.player.x=Math.max(0,Math.min(this.c.width-this.player.w,this.player.x+dx));},
+        fire(){if(this.running&&this.bullets.length<5)this.bullets.push({x:this.player.x+this.player.w/2-2,y:this.player.y-6,vy:-8});},
+        loop(){if(!this.running)return;this.frame++;if(this.frame%12===0){let edge=false;for(const e of this.enemies)if((this.dir>0&&e.x+e.w>=this.c.width-4)||(this.dir<0&&e.x<=4)){edge=true;break;}if(edge){this.dir*=-1;this.enemies.forEach(e=>e.y+=12);}else this.enemies.forEach(e=>e.x+=this.dir*6);}
+            this.bullets.forEach(b=>b.y+=b.vy);this.bullets=this.bullets.filter(b=>b.y>-20);
+            if(this.frame%30===0&&this.enemies.length)this.enemyBullets.push({x:this.enemies[Math.floor(Math.random()*this.enemies.length)].x+10,y:70,vy:4});
+            this.enemyBullets.forEach(b=>b.y+=b.vy);this.enemyBullets=this.enemyBullets.filter(b=>b.y<this.c.height+20);
+            for(let i=this.bullets.length-1;i>=0;i--){let b=this.bullets[i];let hit=-1;for(let j=0;j<this.enemies.length;j++){let e=this.enemies[j];if(b.x<e.x+e.w&&b.x+4>e.x&&b.y<e.y+e.h&&b.y+10>e.y){hit=j;break;}}if(hit>=0){this.enemies.splice(hit,1);this.bullets.splice(i,1);this.score+=10;document.getElementById('space-score').innerText=this.score;}}
+            if(this.enemies.some(e=>e.y+e.h>=this.player.y)||this.enemyBullets.some(b=>b.x>this.player.x&&b.x<this.player.x+this.player.w&&b.y>this.player.y&&b.y<this.player.y+this.player.h)){this.stop();Suite.showModal("Invaders Breached",`Score: ${this.score}`);return;}
+            if(!this.enemies.length){this.stop();Suite.showModal("You Win!",`Score: ${this.score}`);return;}
+            this.draw();
+        },
+        draw(){this.ctx.fillStyle='#1b1b1b';this.ctx.fillRect(0,0,this.c.width,this.c.height);this.ctx.fillStyle='#DD8566';this.ctx.fillRect(this.player.x,this.player.y,this.player.w,this.player.h);this.ctx.fillStyle='#fff';this.bullets.forEach(b=>this.ctx.fillRect(b.x,b.y,4,10));this.ctx.fillStyle='#474D4D';this.enemies.forEach(e=>this.ctx.fillRect(e.x,e.y,e.w,e.h));this.ctx.fillStyle='#FFB8A5';this.enemyBullets.forEach(b=>this.ctx.fillRect(b.x,b.y,4,10));},
+        handleInput(e){if(e.code==='ArrowLeft'||e.code==='KeyA')this.move(-18);else if(e.code==='ArrowRight'||e.code==='KeyD')this.move(18);else if(e.code==='Space')this.fire();},
+        aiTrigger(){clearInterval(this.aiTimer);this.aiTimer=setInterval(()=>this.aiMove(),Math.max(50,180/Suite.speedMult));},
+        aiMove(){if(!this.running||!this.enemies.length)return;const target=this.enemies.reduce((a,b)=>Math.abs((b.x+b.w/2)-this.player.x)<Math.abs((a.x+a.w/2)-this.player.x)?b:a,this.enemies[0]);const tx=target.x+target.w/2;this.move(tx>(this.player.x+this.player.w/2)?8:-8);this.fire();}
+    };
+
+    // 18. ASTEROIDS
+    const AsteroidsGame = {
+        c:null,ctx:null,ship:null,shots:[],rocks:[],keys:new Set(),score:0,running:false,interval:null,aiTimer:null,
+        start(){this.c=document.getElementById('asteroids-canvas');this.ctx=this.c.getContext('2d');this.ship={x:210,y:210,a:-Math.PI/2,vx:0,vy:0,cool:0};this.shots=[];this.rocks=[];this.score=0;this.running=true;document.getElementById('asteroids-score').innerText=0;for(let i=0;i<6;i++){let r={x:Math.random()*420,y:Math.random()*420,r:18+Math.random()*16,vx:(Math.random()-.5)*1.8,vy:(Math.random()-.5)*1.8};if(Math.hypot(r.x-210,r.y-210)<80){i--;continue;}this.rocks.push(r);}this.restartTimer();},
+        stop(){this.running=false;clearInterval(this.interval);clearInterval(this.aiTimer);},
+        restartTimer(){clearInterval(this.interval);this.interval=setInterval(()=>this.loop(),20/Math.max(.25,Suite.speedMult));},
+        wrap(o){if(o.x<0)o.x+=this.c.width;if(o.x>this.c.width)o.x-=this.c.width;if(o.y<0)o.y+=this.c.height;if(o.y>this.c.height)o.y-=this.c.height;},
+        fire(){if(this.ship.cool<=0){this.shots.push({x:this.ship.x+Math.cos(this.ship.a)*14,y:this.ship.y+Math.sin(this.ship.a)*14,vx:Math.cos(this.ship.a)*6+this.ship.vx,vy:Math.sin(this.ship.a)*6+this.ship.vy,life:70});this.ship.cool=10;}},
+        loop(){if(!this.running)return;const s=this.ship;if(this.keys.has('KeyA')||this.keys.has('ArrowLeft'))s.a-=.07;if(this.keys.has('KeyD')||this.keys.has('ArrowRight'))s.a+=.07;if(this.keys.has('KeyW')||this.keys.has('ArrowUp')){s.vx+=Math.cos(s.a)*.09;s.vy+=Math.sin(s.a)*.09;}s.vx*=.995;s.vy*=.995;s.x+=s.vx;s.y+=s.vy;this.wrap(s);if(this.keys.has('Space'))this.fire();s.cool=Math.max(0,s.cool-1);this.shots.forEach(b=>{b.x+=b.vx;b.y+=b.vy;b.life--;this.wrap(b);});this.shots=this.shots.filter(b=>b.life>0);
+            for(let i=this.shots.length-1;i>=0;i--){let hit=-1;for(let j=0;j<this.rocks.length;j++){let r=this.rocks[j];if(Math.hypot(this.shots[i].x-r.x,this.shots[i].y-r.y)<r.r){hit=j;break;}}if(hit>=0){const r=this.rocks[hit];this.rocks.splice(hit,1);this.shots.splice(i,1);this.score+=20;document.getElementById('asteroids-score').innerText=this.score;if(r.r>12)for(let k=0;k<2;k++)this.rocks.push({x:r.x,y:r.y,r:r.r*.58,vx:(Math.random()-.5)*3,vy:(Math.random()-.5)*3});}}
+            for(const r of this.rocks){r.x+=r.vx;r.y+=r.vy;this.wrap(r);if(Math.hypot(r.x-s.x,r.y-s.y)<r.r+10){this.stop();Suite.showModal("Ship Destroyed",`Score: ${this.score}`);return;}}
+            if(!this.rocks.length){this.stop();Suite.showModal("Sector Cleared!",`Score: ${this.score}`);return;}this.draw();},
+        draw(){this.ctx.fillStyle='#101010';this.ctx.fillRect(0,0,420,420);this.ctx.strokeStyle='#474D4D';this.ctx.lineWidth=2;this.ctx.beginPath();this.ctx.moveTo(this.ship.x+14*Math.cos(this.ship.a),this.ship.y+14*Math.sin(this.ship.a));this.ctx.lineTo(this.ship.x+12*Math.cos(this.ship.a+2.5),this.ship.y+12*Math.sin(this.ship.a+2.5));this.ctx.lineTo(this.ship.x+12*Math.cos(this.ship.a-2.5),this.ship.y+12*Math.sin(this.ship.a-2.5));this.ctx.closePath();this.ctx.stroke();this.ctx.fillStyle='#DD8566';this.shots.forEach(b=>this.ctx.fillRect(b.x-2,b.y-2,4,4));this.ctx.strokeStyle='#fff';this.rocks.forEach(r=>{this.ctx.beginPath();this.ctx.arc(r.x,r.y,r.r,0,Math.PI*2);this.ctx.stroke();});},
+        handleInput(e){if(['KeyA','KeyD','KeyW','ArrowLeft','ArrowRight','ArrowUp','Space'].includes(e.code))this.keys.add(e.code);},
+        aiTrigger(){clearInterval(this.aiTimer);this.aiTimer=setInterval(()=>this.aiMove(),Math.max(40,140/Suite.speedMult));},
+        aiMove(){if(!this.running||!this.rocks.length)return;const r=this.rocks.reduce((a,b)=>Math.hypot(b.x-this.ship.x,b.y-this.ship.y)<Math.hypot(a.x-this.ship.x,a.y-this.ship.y)?b:a,this.rocks[0]);const wanted=Math.atan2(r.y-this.ship.y,r.x-this.ship.x);let d=wanted-this.ship.a;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;this.ship.a+=Math.max(-.16,Math.min(.16,d));this.fire();if(Math.random()<.35){this.ship.vx+=Math.cos(this.ship.a)*.12;this.ship.vy+=Math.sin(this.ship.a)*.12;}}
+    };
+    window.addEventListener('keyup',e=>{if(typeof AsteroidsGame!=='undefined')AsteroidsGame.keys.delete(e.code);});
+
+    // 19. DODGE
+    const DodgeGame = {
+        c:null,ctx:null,x:150,y:410,w:28,h:28,obstacles:[],score:0,frame:0,running:false,interval:null,aiTimer:null,
+        start(){this.c=document.getElementById('dodge-canvas');this.ctx=this.c.getContext('2d');this.x=150;this.obstacles=[];this.score=0;this.frame=0;this.running=true;document.getElementById('dodge-score').innerText=0;this.restartTimer();},
+        stop(){this.running=false;clearInterval(this.interval);clearInterval(this.aiTimer);},
+        restartTimer(){clearInterval(this.interval);this.interval=setInterval(()=>this.loop(),30/Math.max(.25,Suite.speedMult));},
+        move(dx){this.x=Math.max(0,Math.min(this.c.width-this.w,this.x+dx));},
+        loop(){if(!this.running)return;this.frame++;if(this.frame%22===0)this.obstacles.push({x:Math.random()*300,y:-30,w:16+Math.random()*22,h:16+Math.random()*22,vy:3+Math.random()*3+this.score/180});this.obstacles.forEach(o=>o.y+=o.vy);this.obstacles=this.obstacles.filter(o=>o.y<500);for(const o of this.obstacles)if(this.x<o.x+o.w&&this.x+this.w>o.x&&this.y<o.y+o.h&&this.y+this.h>o.y){this.stop();Suite.showModal("Hit!",`Survival score: ${Math.floor(this.score)}`);return;}this.score+=.5;document.getElementById('dodge-score').innerText=Math.floor(this.score);this.draw();},
+        draw(){this.ctx.fillStyle='#f5f5f5';this.ctx.fillRect(0,0,320,460);this.ctx.fillStyle='#474D4D';this.obstacles.forEach(o=>this.ctx.fillRect(o.x,o.y,o.w,o.h));this.ctx.fillStyle='#DD8566';this.ctx.fillRect(this.x,this.y,this.w,this.h);},
+        handleInput(e){if(e.code==='ArrowLeft'||e.code==='KeyA')this.move(-24);else if(e.code==='ArrowRight'||e.code==='KeyD')this.move(24);},
+        aiTrigger(){clearInterval(this.aiTimer);this.aiTimer=setInterval(()=>this.aiMove(),Math.max(40,120/Suite.speedMult));},
+        aiMove(){if(!this.running)return;const threats=this.obstacles.filter(o=>o.y<450&&o.y+o.h>300);if(!threats.length)return;const t=threats.reduce((a,b)=>Math.abs((b.x+b.w/2)-(this.x+this.w/2))<Math.abs((a.x+a.w/2)-(this.x+this.w/2))?b:a,threats[0]);const center=this.x+this.w/2,tc=t.x+t.w/2;if(Math.abs(tc-center)<80){this.move(tc<center?34:-34);}}
+    };
+
+    // 20. SUDOKU
+    const SudokuGame = {
+        board:[],solution:[],fixed:new Set(),selected:-1,aiTimer:null,
+        start(){clearInterval(this.aiTimer);this.newPuzzle('easy');},
+        newPuzzle(diff='easy'){
+            const removed={easy:35,medium:45,hard:52}[diff]||35;
+            this.solution=this.generate();this.board=this.solution.slice();this.fixed=new Set(Array.from({length:81},(_,i)=>i));this.selected=-1;
+            let idx=[...Array(81).keys()].sort(()=>Math.random()-.5);for(let i=0;i<removed;i++){this.board[idx[i]]=0;this.fixed.delete(idx[i]);}
+            document.getElementById('sudoku-status').innerText=diff[0].toUpperCase()+diff.slice(1);this.draw();
+        },
+        generate(){
+            let b=Array(81).fill(0), ok=(idx,n)=>{if(idx===81)return true;let r=Math.floor(idx/9),c=idx%9,vals=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-.5);for(let v of vals){let good=true;for(let k=0;k<9;k++)if(b[r*9+k]===v||b[k*9+c]===v||b[(Math.floor(r/3)*3+Math.floor(k/3))*9+Math.floor(c/3)*3+k%3]===v){good=false;break;}if(good){b[idx]=v;if(ok(idx+1,n))return true;b[idx]=0;}}return false;};ok(0);return b;},
+        valid(idx,v){
+            if(!v)return true;let r=Math.floor(idx/9),c=idx%9;for(let k=0;k<9;k++)if(k!==c&&this.board[r*9+k]===v)return false;for(let k=0;k<9;k++)if(k!==r&&this.board[k*9+c]===v)return false;let br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;for(let y=br;y<br+3;y++)for(let x=bc;x<bc+3;x++)if((y*9+x)!==idx&&this.board[y*9+x]===v)return false;return true;
+        },
+        draw(){const b=document.getElementById('sudoku-board');b.innerHTML='';for(let i=0;i<81;i++){let el=document.createElement('div');el.className='sdk-cell';let r=Math.floor(i/9),c=i%9;if(c===2||c===5)el.classList.add('box-right');if(r===2||r===5)el.classList.add('box-bottom');if(this.fixed.has(i)){el.classList.add('fixed');el.innerText=this.board[i]||'';}else{el.innerText=this.board[i]||'';el.onclick=()=>this.select(i);}if(i===this.selected)el.classList.add('selected');b.appendChild(el);}},
+        select(i){if(this.fixed.has(i))return;this.selected=i;this.draw();},
+        key(n){if(this.selected<0||this.fixed.has(this.selected))return;if(n==='0'){this.board[this.selected]=0;this.draw();return;}let v=Number(n);if(v<1||v>9)return;this.board[this.selected]=v;this.draw();},
+        check(){let ok=true;for(let i=0;i<81;i++)if(this.board[i]!==this.solution[i]){ok=false;break;}if(ok)Suite.showModal("Solved!","Perfect Sudoku.");else Suite.showModal("Not Yet","Some cells are incorrect or empty.");},
+        handleInput(e){if(/^[1-9]$/.test(e.key))this.key(e.key);else if(e.key==='0'||e.key==='Backspace'||e.key==='Delete')this.key('0');},
+        stop(){clearInterval(this.aiTimer);},
+        aiTrigger(){clearInterval(this.aiTimer);let i=0;this.aiTimer=setInterval(()=>{while(i<81&&this.fixed.has(i))i++;if(i>=81){clearInterval(this.aiTimer);this.check();return;}this.board[i]=this.solution[i];this.selected=i;this.draw();i++;},Math.max(12,60/Suite.speedMult));}
+    };
+
+    // 21. TYPING BLITZ
+    const TypingGame = {
+        words:"orbit pixel terminal matrix comet signal binary copper rocket vector kernel logic cipher canyon circuit neon quantum memory packet raster arcade debug portal".split(' '),
+        queue:[],pos:0,correct:0,total:0,startT:0,timeLeft:30,timer:null,running:false,aiTimer:null,
+        start(){this.queue=[];this.pos=0;this.correct=0;this.total=0;this.timeLeft=30;this.running=true;for(let i=0;i<80;i++)this.queue.push(this.words[Math.floor(Math.random()*this.words.length)]);document.getElementById('typing-input').value='';document.getElementById('typing-input').disabled=false;document.getElementById('typing-input').focus();this.startT=Date.now();this.render();clearInterval(this.timer);this.timer=setInterval(()=>this.tick(),250);},
+        stop(){this.running=false;clearInterval(this.timer);clearTimeout(this.aiTimer);const inp=document.getElementById('typing-input');if(inp)inp.disabled=true;},
+        tick(){if(!this.running)return;this.timeLeft=Math.max(0,30-Math.floor((Date.now()-this.startT)/1000));document.getElementById('typing-time').innerText=`Time: ${this.timeLeft}s`;this.updateStats();if(this.timeLeft<=0){this.stop();Suite.showModal("Time!",`WPM: ${this.wpm()}<br>Accuracy: ${this.acc()}%`);}},
+        current(){return this.queue[this.pos]||'';},
+        wpm(){const mins=Math.max(.1,(Date.now()-this.startT)/60000);return Math.round((this.correct/5)/mins);},
+        acc(){return this.total?Math.round(this.correct/this.total*100):100;},
+        updateStats(){document.getElementById('typing-wpm').innerText=`WPM: ${this.wpm()}`;document.getElementById('typing-acc').innerText=`Accuracy: ${this.acc()}%`;},
+        render(){document.getElementById('typing-word').innerText=this.current();this.updateStats();},
+        handleInput(e){if(!this.running)return;let inp=document.getElementById('typing-input');if(e.key===' '){e.preventDefault();let v=inp.value.trim();this.total++;if(v===this.current()){this.correct+=this.current().length;this.pos++;}inp.value='';this.render();return;}if(e.key==='Backspace'||e.key==='Delete'||e.key.length!==1)return;this.total++;let idx=inp.value.length;let expected=this.current()[idx];if(e.key===expected)this.correct++;this.updateStats();},
+        aiTrigger(){if(!this.running)this.start();clearTimeout(this.aiTimer);const step=()=>{if(!this.running)return;const w=this.current();const inp=document.getElementById('typing-input');inp.value=w;this.total+=w.length+1;this.correct+=w.length;this.pos++;inp.value='';this.render();this.aiTimer=setTimeout(step,Math.max(30,110/Suite.speedMult));};this.aiTimer=setTimeout(step,50);}
+    };
+
+    // 22. LIGHTS OUT
+    const LightsGame = {
+        grid:[],moves:0,aiTimer:null,
+        start(){this.newGame();},
+        newGame(){clearTimeout(this.aiTimer);this.grid=Array(25).fill(false);for(let i=0;i<25;i++)if(Math.random()<.35)this.grid[i]=true;this.moves=0;this.draw();},
+        press(i){const r=Math.floor(i/5),c=i%5;for(const [dr,dc] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]]){let nr=r+dr,nc=c+dc;if(nr>=0&&nr<5&&nc>=0&&nc<5)this.grid[nr*5+nc]=!this.grid[nr*5+nc];}this.moves++;this.draw();if(this.grid.every(v=>!v))Suite.showModal("Lights Out!",`Solved in ${this.moves} moves.`);},
+        draw(){document.getElementById('lights-score').innerText=`Moves: ${this.moves}`;const b=document.getElementById('lights-board');b.innerHTML='';this.grid.forEach((v,i)=>{let e=document.createElement('button');e.className='light-cell'+(v?' on':'');e.onclick=()=>this.press(i);b.appendChild(e);});},
+        stop(){clearTimeout(this.aiTimer);},
+        aiTrigger(){clearTimeout(this.aiTimer);const initial=this.grid.slice();const pressCopy=(g,i)=>{const r=Math.floor(i/5),c=i%5;for(const [dr,dc] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]]){let nr=r+dr,nc=c+dc;if(nr>=0&&nr<5&&nc>=0&&nc<5)g[nr*5+nc]=!g[nr*5+nc];}};let solution=null;for(let mask=0;mask<32&&!solution;mask++){let g=initial.slice(),moves=[];for(let c=0;c<5;c++)if(mask&(1<<c)){moves.push(c);pressCopy(g,c);}for(let r=1;r<5;r++)for(let c=0;c<5;c++)if(g[(r-1)*5+c]){let i=r*5+c;moves.push(i);pressCopy(g,i);}if(g.every(v=>!v))solution=moves;}if(!solution){Suite.showModal('No Solution','This board is not solvable.');return;}let i=0;const step=()=>{if(i>=solution.length){clearTimeout(this.aiTimer);return;}this.press(solution[i++]);this.aiTimer=setTimeout(step,Math.max(20,90/Suite.speedMult));};step();}
+    };
+
+    // 23. MATH SPRINT
+    const MathGame = {
+        running:false,time:30,score:0,current:null,timer:null,aiTimer:null,
+        start(){this.running=true;this.time=30;this.score=0;document.getElementById('math-input').value='';document.getElementById('math-input').focus();this.next();clearInterval(this.timer);this.timer=setInterval(()=>{this.time--;document.getElementById('math-time').innerText=`Time: ${this.time}s`;if(this.time<=0){this.stop();Suite.showModal("Time!",`Score: ${this.score}`);}},1000);},
+        stop(){this.running=false;clearInterval(this.timer);clearTimeout(this.aiTimer);},
+        next(){let a=2+Math.floor(Math.random()*18),b=2+Math.floor(Math.random()*18);if(Math.random()<.35){this.current={a,b,op:'×',ans:a*b};}else{this.current={a:a+b,b,op:'−',ans:a};if(this.current.a<=this.current.b)return this.next();}document.getElementById('math-question').innerText=`${this.current.a} ${this.current.op} ${this.current.b} = ?`;document.getElementById('math-score').innerText=`Score: ${this.score}`;},
+        handleInput(e){if(!this.running||e.key!=='Enter')return;let n=Number(document.getElementById('math-input').value);if(n===this.current.ans)this.score++;else this.score=Math.max(0,this.score-1);document.getElementById('math-input').value='';this.next();},
+        aiTrigger(){if(!this.running)this.start();clearTimeout(this.aiTimer);const step=()=>{if(!this.running)return;this.score++;this.next();this.aiTimer=setTimeout(step,Math.max(25,180/Suite.speedMult));};this.aiTimer=setTimeout(step,40);}
+    };
+
+    // 24. TIC TAC TOE (MP, AI, Ultimate, 3D)
+
     const TTT = {
         mode: null, variant: null, peer: null, conn: null, difficulty: 'medium', board: [], turn: 'X', myPlayer: 'X', active: false, ultMacro: [], activeSubGrid: -1, scores: {p1:0, p2:0, draw:0}, animationsEnabled: true, nextStarter: 'X', currentStarter: 'X', aiTimer: null,
         winLines3D: [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6],[9,10,11],[12,13,14],[15,16,17],[9,12,15],[10,13,16],[11,14,17],[9,13,17],[11,13,15],[18,19,20],[21,22,23],[24,25,26],[18,21,24],[19,22,25],[20,23,26],[18,22,26],[20,22,24],[0,9,18],[1,10,19],[2,11,20],[3,12,21],[4,13,22],[5,14,23],[6,15,24],[7,16,25],[8,17,26],[0,12,24],[6,12,18],[1,13,25],[7,13,19],[2,14,26],[8,14,20],[0,10,20],[2,10,18],[3,13,23],[5,13,21],[6,16,26],[8,16,24],[0,13,26],[2,13,24],[6,13,20],[8,13,18]],
