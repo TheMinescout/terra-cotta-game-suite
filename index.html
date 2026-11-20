@@ -431,8 +431,9 @@
             }
             Suite.aiMode = !Suite.aiMode; 
             Suite.updateAIButtons();
-            if(Suite.activeGame && Suite.activeGame.restartTimer) Suite.activeGame.restartTimer();
-            if(Suite.aiMode && Suite.activeGame && Suite.activeGame.aiMove) Suite.activeGame.aiMove();
+            if(Suite.activeGame.onAIToggle) Suite.activeGame.onAIToggle();
+            if(Suite.activeGame.restartTimer) Suite.activeGame.restartTimer();
+            if(Suite.aiMode && Suite.activeGame.aiMove) Suite.activeGame.aiMove();
             Suite.toast(Suite.aiMode ? 'AI auto-play enabled.' : 'AI auto-play disabled.');
         },
         toast: (msg) => { const t = document.getElementById('toast'); t.innerText = msg; t.style.visibility='visible'; clearTimeout(Suite.toastTimer); Suite.toastTimer = setTimeout(() => t.style.visibility='hidden', 2200); },
@@ -441,8 +442,10 @@
 
     // QUICK MATCH
     const QuickMatchGame = {
-        values: [], open: [], matched: 0, moves: 0, interval: null,
+        values: [], open: [], matched: 0, moves: 0, interval: null, flipTimer: null, aiTimer: null,
         start: function() {
+            clearTimeout(this.flipTimer); clearTimeout(this.aiTimer);
+            this.flipTimer = null; this.aiTimer = null;
             const base = ['🍓','🍋','🍉','🍇','🍒','🥝','🍍','🍊'];
             this.values = [...base, ...base].sort(() => Math.random() - 0.5);
             this.open = []; this.matched = 0; this.moves = 0;
@@ -458,10 +461,10 @@
             });
             this.restartTimer();
         },
-        stop: function() { clearInterval(this.interval); },
+        stop: function() { clearInterval(this.interval); clearTimeout(this.flipTimer); clearTimeout(this.aiTimer); this.flipTimer = null; this.aiTimer = null; },
         restartTimer: function() { if(this.interval) clearInterval(this.interval); this.interval = setInterval(() => { if(Suite.aiMode && Suite.activeGame===QuickMatchGame) this.aiMove(); }, 350/Suite.speedMult); },
         flip: function(idx, card) {
-            if(this.open.length === 2 || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+            if(!card.isConnected || this.open.length === 2 || card.classList.contains('flipped') || card.classList.contains('matched')) return;
             card.classList.add('flipped');
             card.innerText = this.values[idx];
             this.open.push({idx, card});
@@ -474,7 +477,8 @@
                     this.open = []; this.matched += 2;
                     if(this.matched === this.values.length) Suite.showModal('Nice!', `Completed in <b>${this.moves}</b> moves.`);
                 } else {
-                    setTimeout(() => {
+                    clearTimeout(this.flipTimer);
+                    this.flipTimer = setTimeout(() => {
                         [a.card, b.card].forEach(c => { c.classList.remove('flipped'); c.innerText = '?'; });
                         this.open = [];
                     }, 500);
@@ -486,7 +490,10 @@
             if(cards.length === 0) return;
             cards[Math.floor(Math.random()*cards.length)].click();
             const second = Array.from(document.querySelectorAll('#qm-grid .qm-card')).filter(c => !c.classList.contains('matched') && !c.classList.contains('flipped'));
-            if(second.length > 0) setTimeout(() => second[Math.floor(Math.random()*second.length)].click(), 120 / Suite.speedMult);
+            if(second.length > 0) {
+                clearTimeout(this.aiTimer);
+                this.aiTimer = setTimeout(() => { if(Suite.activeGame===QuickMatchGame) second[Math.floor(Math.random()*second.length)].click(); }, 120 / Suite.speedMult);
+            }
         }
     };
 
@@ -521,6 +528,7 @@
         submit: function() {
             const val = parseInt(document.getElementById('math-answer').value, 10);
             const feedback = document.getElementById('math-feedback');
+            if(isNaN(val)) return;
             if(val === this.expected()) {
                 this.score++;
                 document.getElementById('math-score').innerText = `Score: ${this.score}`;
@@ -584,15 +592,21 @@
     };
 
     const GuessGame = {
-        target: 1, tries: 0, low: 1, high: 100, interval: null,
-        start: function() { this.target = Math.floor(Math.random()*100)+1; this.tries=0; this.low=1; this.high=100; document.getElementById('guess-tries').innerText='Tries: 0'; document.getElementById('guess-hint').innerText='Guess 1 to 100'; document.getElementById('guess-input').value=''; this.restartTimer(); },
-        stop: function() { clearInterval(this.interval); },
+        target: 1, tries: 0, low: 1, high: 100, interval: null, roundTimer: null, solved: false,
+        start: function() { clearTimeout(this.roundTimer); this.roundTimer = null; this.solved = false; this.target = Math.floor(Math.random()*100)+1; this.tries=0; this.low=1; this.high=100; document.getElementById('guess-tries').innerText='Tries: 0'; document.getElementById('guess-hint').innerText='Guess 1 to 100'; document.getElementById('guess-input').value=''; this.restartTimer(); },
+        stop: function() { clearInterval(this.interval); clearTimeout(this.roundTimer); this.roundTimer = null; },
         restartTimer: function() { if(this.interval) clearInterval(this.interval); this.interval = setInterval(() => { if(Suite.aiMode && Suite.activeGame===GuessGame) this.aiMove(); }, 500/Suite.speedMult); },
         submit: function(v) {
+            if(this.solved) return;
             const val = v || parseInt(document.getElementById('guess-input').value, 10);
             if(!val) return;
             this.tries++; document.getElementById('guess-tries').innerText = `Tries: ${this.tries}`;
-            if(val === this.target) { document.getElementById('guess-hint').innerText = `Correct! It was ${this.target}.`; this.start(); return; }
+            if(val === this.target) {
+                this.solved = true;
+                document.getElementById('guess-hint').innerText = `Correct! It was ${this.target} in ${this.tries} ${this.tries === 1 ? 'try' : 'tries'}.`;
+                this.roundTimer = setTimeout(() => this.start(), Math.max(600, 1600 / Suite.speedMult));
+                return;
+            }
             if(val < this.target) { this.low = Math.max(this.low, val+1); document.getElementById('guess-hint').innerText = 'Too low'; }
             else { this.high = Math.min(this.high, val-1); document.getElementById('guess-hint').innerText = 'Too high'; }
         },
@@ -1230,15 +1244,21 @@
     // TIC TAC TOE
     const TTT = {
         mode: null, variant: null, peer: null, conn: null, difficulty: 'medium',
-        board: [], turn: 'X', myPlayer: 'X', active: false, ultMacro: [], activeSubGrid: -1, scores: {p1:0, p2:0, draw:0}, animationsEnabled: true, nextStarter: 'X', currentStarter: 'X', aiTimer: null, interval: null,
+        board: [], turn: 'X', myPlayer: 'X', active: false, ultMacro: [], activeSubGrid: -1, scores: {p1:0, p2:0, draw:0}, animationsEnabled: true, nextStarter: 'X', currentStarter: 'X', aiTimer: null, aiLoop: false, interval: null,
         winLines3D: [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6],[9,10,11],[12,13,14],[15,16,17],[9,12,15],[10,13,16],[11,14,17],[9,13,17],[11,13,15],[18,19,20],[21,22,23],[24,25,26],[18,21,24],[19,22,25],[20,23,26],[18,22,26],[20,22,24],[0,9,18],[1,10,19],[2,11,20],[3,12,21],[4,13,22],[5,14,23],[6,15,24],[7,16,25],[8,17,26],[0,12,24],[6,12,18],[1,13,25],[7,13,19],[2,14,26],[8,14,20],[0,10,20],[2,10,18],[3,13,23],[5,13,21],[6,16,26],[8,16,24],[0,13,26],[2,13,24],[6,13,20],[8,13,18]],
         
-        stop: function() { this.active = false; clearTimeout(this.aiTimer); clearInterval(this.interval); },
+        stop: function() { this.active = false; this.aiLoop = false; clearTimeout(this.aiTimer); this.aiTimer = null; clearInterval(this.interval); },
         restartTimer: function() { if(this.interval) clearInterval(this.interval); this.interval = setInterval(() => { if(Suite.aiMode && Suite.activeGame===TTT) this.aiMove(); }, 450/Suite.speedMult); },
-        showMenu: () => { TTT.restartTimer(); document.getElementById('ttt-menu').style.display='block'; ['ttt-mp-setup','ttt-host-wait','ttt-variant','ttt-game','ttt-bot-diff'].forEach(id=>document.getElementById(id).style.display='none'); },
+        scheduleAIMove: (delay) => { clearTimeout(TTT.aiTimer); TTT.aiTimer = null; if(TTT.aiLoop) TTT.aiTimer = setTimeout(TTT.botMove, delay / Suite.speedMult); },
+        onAIToggle: () => {
+            if(Suite.aiMode) { TTT.aiLoop = TTT.mode === 'ai-vs-ai'; return; }
+            if(TTT.mode !== 'ai-vs-ai') return;
+            TTT.aiLoop = false; clearTimeout(TTT.aiTimer); TTT.aiTimer = null;
+        },
+        showMenu: () => { TTT.active = false; TTT.aiLoop = false; clearTimeout(TTT.aiTimer); TTT.aiTimer = null; TTT.restartTimer(); document.getElementById('ttt-menu').style.display='block'; ['ttt-mp-setup','ttt-host-wait','ttt-variant','ttt-game','ttt-bot-diff'].forEach(id=>document.getElementById(id).style.display='none'); },
         setup: (mode) => { TTT.mode = mode; document.getElementById('ttt-menu').style.display='none'; if(mode==='mp') document.getElementById('ttt-mp-setup').style.display='block'; else if(mode==='bot' || mode==='ai-vs-ai') document.getElementById('ttt-bot-diff').style.display='block'; else { TTT.mode='local'; document.getElementById('ttt-variant').style.display='block'; } },
         setDifficulty: (diff) => { TTT.difficulty=diff; document.getElementById('ttt-bot-diff').style.display='none'; document.getElementById('ttt-variant').style.display='block'; },
-        startGame: (v) => { TTT.variant=v; document.getElementById('ttt-variant').style.display='none'; document.getElementById('ttt-game').style.display='flex'; TTT.initBoard(); },
+        startGame: (v) => { TTT.variant=v; TTT.aiLoop = TTT.mode === 'ai-vs-ai'; document.getElementById('ttt-variant').style.display='none'; document.getElementById('ttt-game').style.display='flex'; TTT.initBoard(); },
         initBoard: () => {
             TTT.active=true; TTT.turn=TTT.nextStarter; TTT.currentStarter=TTT.nextStarter; TTT.ultMacro=Array(9).fill(null); TTT.activeSubGrid=-1;
             document.getElementById('win-line-svg').innerHTML=''; const b3=document.getElementById('board-3d'); if(b3)b3.classList.remove('stacked');
@@ -1247,7 +1267,8 @@
             if(TTT.variant==='normal') { TTT.board=Array(9).fill(null); const g=document.createElement('div'); g.id='board-normal'; for(let i=0;i<9;i++)g.appendChild(TTT.cell(i)); con.appendChild(g); }
             if(TTT.variant==='3d') { TTT.board=Array(27).fill(null); const w=document.createElement('div'); w.id='board-3d'; for(let z=0;z<3;z++){ const l=document.createElement('div'); l.className='layer-3d'; for(let i=0;i<9;i++)l.appendChild(TTT.cell(z*9+i)); w.appendChild(l); } con.appendChild(w); }
             if(TTT.variant==='ultimate') { TTT.board=Array(81).fill(null); const g=document.createElement('div'); g.id='board-ultimate'; for(let i=0;i<9;i++){ const s=document.createElement('div'); s.className='sub-grid active-zone'; s.id=`sub-${i}`; for(let j=0;j<9;j++)s.appendChild(TTT.cell(i*9+j)); g.appendChild(s); } con.appendChild(g); }
-            if((TTT.mode==='bot' && TTT.turn==='O') || TTT.mode==='ai-vs-ai') TTT.aiTimer = setTimeout(TTT.botMove, 800 / Suite.speedMult);
+            if(TTT.mode==='ai-vs-ai') TTT.scheduleAIMove(800);
+            else if(TTT.mode==='bot' && TTT.turn==='O') TTT.aiTimer = setTimeout(TTT.botMove, 800 / Suite.speedMult);
         },
         cell: (idx) => { const c=document.createElement('div'); c.className='ttt-cell'; c.dataset.idx=idx; const s=document.createElement('span'); c.appendChild(s); c.onclick=()=>TTT.click(idx); return c; },
         click: (idx) => { if(!TTT.active || TTT.mode==='ai-vs-ai' || (TTT.mode!=='local' && TTT.mode!=='bot' && TTT.turn!==TTT.myPlayer)) return; if(TTT.board[idx]) return; if(TTT.variant==='ultimate' && (TTT.activeSubGrid!==-1 && Math.floor(idx/9)!==TTT.activeSubGrid || TTT.ultMacro[Math.floor(idx/9)])) return; TTT.move(idx, TTT.turn); if(TTT.mode==='mp' && TTT.conn) TTT.conn.send({type:'move', idx:idx}); if(TTT.mode==='bot' && TTT.active) TTT.aiTimer = setTimeout(TTT.botMove, 500 / Suite.speedMult); },
@@ -1264,7 +1285,7 @@
             
             if(winLine) TTT.end(p, winLine); else if(TTT.board.every(c=>c)) TTT.end('draw', null); else { 
                 TTT.turn = TTT.turn==='X'?'O':'X'; document.getElementById('ttt-turn').innerText = `Turn: ${TTT.turn}`; if(TTT.variant==='ultimate') TTT.highlightUlt(); 
-                if(TTT.mode==='ai-vs-ai' && TTT.active) TTT.aiTimer = setTimeout(TTT.botMove, 500 / Suite.speedMult);
+                if(TTT.mode==='ai-vs-ai' && TTT.active) TTT.scheduleAIMove(500);
             }
         },
         checkWin: (b, p) => { const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]]; for(let w of wins) if(w.every(i => b[i]===p)) return w; return null; },
@@ -1352,7 +1373,7 @@
             if(res==='draw') { TTT.scores.draw++; TTT.nextStarter = TTT.currentStarter === 'X' ? 'O' : 'X'; } else { if(res==='X') TTT.scores.p1++; else TTT.scores.p2++; TTT.nextStarter = res==='X'?'O':'X'; }
             document.getElementById('p1-score').innerText = `P1: ${TTT.scores.p1}`; document.getElementById('p2-score').innerText = `P2: ${TTT.scores.p2}`;
             if(res !== 'draw' && winLine) { if(TTT.animationsEnabled && TTT.variant==='3d') { document.getElementById('board-3d').classList.add('stacked'); setTimeout(() => { TTT.drawWinLine(winLine); }, 1200); } else if(TTT.animationsEnabled) { TTT.drawWinLine(winLine); } }
-            if (TTT.mode === 'ai-vs-ai') { TTT.aiTimer = setTimeout(() => { if (Suite.activeGame === TTT) TTT.restart(); }, 2000 / Suite.speedMult); } 
+            if (TTT.mode === 'ai-vs-ai' && TTT.aiLoop) { TTT.aiTimer = setTimeout(() => { if (Suite.activeGame === TTT && TTT.aiLoop) TTT.restart(); }, 2000 / Suite.speedMult); } 
             else { setTimeout(() => document.getElementById('ttt-restart').style.display='block', 800); }
         },
         drawWinLine: (indices) => {
